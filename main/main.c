@@ -12,6 +12,7 @@
 #include "pax_gfx.h"
 #include "pax_text.h"
 #include "portmacro.h"
+#include "sapphire.h"
 
 // Constants
 static char const TAG[] = "main";
@@ -62,7 +63,7 @@ void app_main(void) {
     }
 
     // Convert BSP display rotation format into PAX orientation type
-    pax_orientation_t      orientation      = PAX_O_UPRIGHT;
+    pax_orientation_t orientation = PAX_O_UPRIGHT;
     switch (display_rotation) {
         case BSP_DISPLAY_ROTATION_90:
             orientation = PAX_O_ROT_CCW;
@@ -92,6 +93,16 @@ void app_main(void) {
     pax_background(&fb, 0xFFFFFFFF);
     pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 0, "Hello world!");
     blit();
+
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    res = sapphire_load_bitstream();
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to load bitstream: %s", esp_err_to_name(res));
+    }
+    ESP_LOGI(TAG, "Bitstream loaded!");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    sapphire_init();
+    sapphire_driver_test();
 
     while (1) {
         bsp_input_event_t event;

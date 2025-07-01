@@ -1,8 +1,21 @@
 {
     "clangd.fallbackFlags": [
-        "-Wunknown-warning-option"
+        "-Wunknown-warning-option",
     ],
     "clangd.arguments": [
-        "--query-driver=/**/riscv32-esp-elf/bin/riscv32-esp-elf-gcc"
-    ]
+        "--query-driver=/**/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc",
+        "--compile-commands-dir=build/mch2022"
+    ],
+    "files.watcherExclude": {
+        "**/target": true
+    },
+    "metals.customProjectRoot": "components/sapphire-driver-esp32/fpga",
+    "files.associations": {
+        "*.inc": "c",
+        "Kconfig": "plaintext",
+        "*.bison": "yacc",
+        "*.c": "c",
+        "ice40.h": "c",
+        "coroutine": "c"
+    }
 }

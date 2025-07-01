@@ -16,4 +16,8 @@ managed_components
 shell.nix
 sdkconfig
 .submodules_update_done
-
+.metals
+.scala-build
+target
+project
+.bloop

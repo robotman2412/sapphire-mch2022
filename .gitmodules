@@ -1,0 +1,9 @@
+[submodule "components/esp32-component-spi-ice40"]
+	path = components/spi-ice40
+	url = https://github.com/badgeteam/esp32-component-spi-ice40
+[submodule "mch2022-tools"]
+	path = mch2022-tools
+	url = https://github.com/badgeteam/mch2022-tools
+[submodule "components/sapphire-driver-esp32/fpga/sapphire-gpu"]
+	path = components/sapphire-driver-esp32/fpga/sapphire-gpu
+	url = https://robotman2412@github.com/robotman2412/sapphire-gpu

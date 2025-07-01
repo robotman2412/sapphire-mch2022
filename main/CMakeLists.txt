@@ -6,6 +6,7 @@ idf_component_register(
 		fatfs
 		nvs_flash
 		badge-bsp
+		sapphire-driver-esp32
 	INCLUDE_DIRS
 		"."
 )

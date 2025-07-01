@@ -10,7 +10,7 @@ MAKEFLAGS += --silent
 
 SHELL := /usr/bin/env bash
 
-DEVICE ?= tanmatsu # Default target device
+DEVICE ?= mch2022 # Default target device
 BUILD ?= build/$(DEVICE)
 
 export IDF_TOOLS_PATH
@@ -19,10 +19,11 @@ export IDF_GITHUB_ASSETS
 # General targets
 
 .PHONY: all
-all: build flash
+all: install
 
 .PHONY: install
-install: flash
+install: build
+	python3 mch2022-tools/app_push.py --run build/mch2022/application.bin sapphire "Sapphire GPU" 1
 
 # Preparation
 
@@ -93,19 +94,20 @@ checkbuildenv:
 
 .PHONY: build
 build: checkbuildenv submodules
+	$(MAKE) -C components/sapphire-driver-esp32/fpga
 	source "$(IDF_PATH)/export.sh" >/dev/null && idf.py -B $(BUILD) build -DDEVICE=$(DEVICE)
 
 # Hardware
 
-.PHONY: flash
-flash: build
-	source "$(IDF_PATH)/export.sh" && \
-	idf.py -B $(BUILD) flash -p $(PORT)
+# .PHONY: flash
+# flash: build
+# 	source "$(IDF_PATH)/export.sh" && \
+# 	idf.py -B $(BUILD) flash -p $(PORT)
 
-.PHONY: flashmonitor
-flashmonitor: build
-	source "$(IDF_PATH)/export.sh" && \
-	idf.py -B $(BUILD) flash -p $(PORT) monitor
+# .PHONY: flashmonitor
+# flashmonitor: build
+# 	source "$(IDF_PATH)/export.sh" && \
+# 	idf.py -B $(BUILD) flash -p $(PORT) monitor
 
 .PHONY: erase
 erase:

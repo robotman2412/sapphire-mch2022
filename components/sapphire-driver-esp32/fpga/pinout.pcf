@@ -1,0 +1,47 @@
+
+set_io clk_12m 35
+set_frequency clk_12m 12MHz
+set_io irq_out_n 10
+
+set_io lcd_cs_n 28
+set_io lcd_rsel 11
+set_io lcd_mode 43
+set_io lcd_fsync 25
+set_io lcd_write 23
+set_io lcd_rst_n 36
+set_io lcd_data[0] 26
+set_io lcd_data[1] 27
+set_io lcd_data[2] 31
+set_io lcd_data[3] 32
+set_io lcd_data[4] 34
+set_io lcd_data[5] 37
+set_io lcd_data[6] 38
+set_io lcd_data[7] 42
+
+set_io pmod[0] 47
+set_io pmod[1] 48
+set_io pmod[2] 3
+set_io pmod[3] 2
+set_io pmod[4] 44
+set_io pmod[5] 45
+set_io pmod[6] 4
+set_io pmod[7] 46
+
+set_io ram_cs_n 18
+set_io ram_sclk 19
+set_io ram_qio[0] 21
+set_io ram_qio[1] 13
+set_io ram_qio[2] 12
+set_io ram_qio[3] 20
+
+set_io uart_tx 9
+set_io uart_rx 6
+
+set_io spi_ss_n 16
+set_io spi_sclk 15
+set_io spi_mosi 17
+set_io spi_miso 14
+
+set_io led_r 39
+set_io led_g 40
+set_io led_b 41
