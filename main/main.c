@@ -94,15 +94,16 @@ void app_main(void) {
     pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 0, "Hello world!");
     blit();
 
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    res = sapphire_load_bitstream();
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    res = sapphire_init();
     if (res != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to load bitstream: %s", esp_err_to_name(res));
+        ESP_LOGE(TAG, "Failed to init Sapphire driver: %s", esp_err_to_name(res));
+    } else {
+        res = sapphire_driver_test();
+        if (res != ESP_OK) {
+            ESP_LOGE(TAG, "Sapphire driver test failed: %s", esp_err_to_name(res));
+        }
     }
-    ESP_LOGI(TAG, "Bitstream loaded!");
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    sapphire_init();
-    sapphire_driver_test();
 
     while (1) {
         bsp_input_event_t event;

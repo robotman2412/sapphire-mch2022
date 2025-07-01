@@ -5,6 +5,13 @@
 #pragma once
 
 #include "esp_err.h"
+#include "sapphire_misc.h"
+
+// Maximum data transfer size.
+#define SAPPHIRE_MAX_TRANSFER_SIZE 4094
+
+// Install the Sapphire bitstream onto the FPGA.
+esp_err_t sapphire_load_bitstream();
 
 // Run a raw command.
 esp_err_t sapphire_do_cmd(uint8_t cmd, void const* param, size_t param_len, void* resp, size_t resp_len);

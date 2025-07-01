@@ -11,11 +11,19 @@
     },
     "metals.customProjectRoot": "components/sapphire-driver-esp32/fpga",
     "files.associations": {
+        "*.disasm": "riscv",
+        "*.svh": "systemverilog",
         "*.inc": "c",
         "Kconfig": "plaintext",
+        "*.psql": "postgres",
         "*.bison": "yacc",
         "*.c": "c",
         "ice40.h": "c",
-        "coroutine": "c"
+        "coroutine": "c",
+        "sapphire_cmd.h": "c",
+        "sapphire_structs.h": "c",
+        "stdint.h": "c",
+        "sapphire_transport.h": "c",
+        "esp_err.h": "c"
     }
 }

@@ -44,9 +44,7 @@ case class Top() extends Component {
     }
 
     /** Global sapphire configuration. */
-    val cfg = SapphireCfg(
-        vaddrBits = 24
-    )
+    val cfg = SapphireCfg(ramSize = 0x800000)
 
     /** SPI/QIO master PYH. */
     val spiMaster = SpiMaster(SpiCfg.SPI_QIO)

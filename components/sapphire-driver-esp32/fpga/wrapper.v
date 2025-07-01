@@ -3,7 +3,7 @@
 
 module wrapper (
     input  wire      clk_12m,
-    input  wire      irq_out_n,
+    output wire      irq_out_n,
 
     output wire      lcd_cs_n,
     output wire      lcd_rsel,
