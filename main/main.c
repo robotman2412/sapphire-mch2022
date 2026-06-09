@@ -6,6 +6,7 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_types.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "hal/lcd_types.h"
 #include "nvs_flash.h"
 #include "pax_fonts.h"
@@ -98,85 +99,27 @@ void app_main(void) {
     res = sapphire_init();
     if (res != ESP_OK) {
         ESP_LOGE(TAG, "Failed to init Sapphire driver: %s", esp_err_to_name(res));
-    } else {
-        res = sapphire_driver_test();
-        if (res != ESP_OK) {
-            ESP_LOGE(TAG, "Sapphire driver test failed: %s", esp_err_to_name(res));
-        }
+        esp_restart();
+    }
+reset:
+    res = sapphire_driver_test();
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Sapphire driver test failed: %s", esp_err_to_name(res));
     }
 
     while (1) {
         bsp_input_event_t event;
         if (xQueueReceive(input_event_queue, &event, portMAX_DELAY) == pdTRUE) {
-            switch (event.type) {
-                case INPUT_EVENT_TYPE_KEYBOARD: {
-                    if (event.args_keyboard.ascii != '\b' ||
-                        event.args_keyboard.ascii != '\t') {  // Ignore backspace & tab keyboard events
-                        ESP_LOGI(TAG, "Keyboard event %c (%02x) %s", event.args_keyboard.ascii,
-                                 (uint8_t)event.args_keyboard.ascii, event.args_keyboard.utf8);
-                        pax_simple_rect(&fb, 0xFFFFFFFF, 0, 0, pax_buf_get_width(&fb), 72);
-                        pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 0, "Keyboard event");
-                        char text[64];
-                        snprintf(text, sizeof(text), "ASCII:     %c (0x%02x)", event.args_keyboard.ascii,
-                                 (uint8_t)event.args_keyboard.ascii);
-                        pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 18, text);
-                        snprintf(text, sizeof(text), "UTF-8:     %s", event.args_keyboard.utf8);
-                        pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 36, text);
-                        snprintf(text, sizeof(text), "Modifiers: 0x%0" PRIX32, event.args_keyboard.modifiers);
-                        pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 54, text);
-                        blit();
-                    }
+            if (event.type == INPUT_EVENT_TYPE_NAVIGATION && event.args_navigation.state) {
+                if (event.args_navigation.key == BSP_INPUT_NAVIGATION_KEY_HOME) {
                     break;
                 }
-                case INPUT_EVENT_TYPE_NAVIGATION: {
-                    ESP_LOGI(TAG, "Navigation event %0" PRIX32 ": %s", (uint32_t)event.args_navigation.key,
-                             event.args_navigation.state ? "pressed" : "released");
-
-                    if (event.args_navigation.key == BSP_INPUT_NAVIGATION_KEY_F1) {
-                        bsp_input_set_backlight_brightness(0);
-                    }
-                    if (event.args_navigation.key == BSP_INPUT_NAVIGATION_KEY_F2) {
-                        bsp_input_set_backlight_brightness(100);
-                    }
-
-                    pax_simple_rect(&fb, 0xFFFFFFFF, 0, 100, pax_buf_get_width(&fb), 72);
-                    pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 100 + 0, "Navigation event");
-                    char text[64];
-                    snprintf(text, sizeof(text), "Key:       0x%0" PRIX32, (uint32_t)event.args_navigation.key);
-                    pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 100 + 18, text);
-                    snprintf(text, sizeof(text), "State:     %s", event.args_navigation.state ? "pressed" : "released");
-                    pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 100 + 36, text);
-                    snprintf(text, sizeof(text), "Modifiers: 0x%0" PRIX32, event.args_navigation.modifiers);
-                    pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 100 + 54, text);
-                    blit();
-                    break;
+                if (event.args_navigation.key == BSP_INPUT_NAVIGATION_KEY_GAMEPAD_A) {
+                    goto reset;
                 }
-                case INPUT_EVENT_TYPE_ACTION: {
-                    ESP_LOGI(TAG, "Action event 0x%0" PRIX32 ": %s", (uint32_t)event.args_action.type,
-                             event.args_action.state ? "yes" : "no");
-                    pax_simple_rect(&fb, 0xFFFFFFFF, 0, 200 + 0, pax_buf_get_width(&fb), 72);
-                    pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 200 + 0, "Action event");
-                    char text[64];
-                    snprintf(text, sizeof(text), "Type:      0x%0" PRIX32, (uint32_t)event.args_action.type);
-                    pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 200 + 36, text);
-                    snprintf(text, sizeof(text), "State:     %s", event.args_action.state ? "yes" : "no");
-                    pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 200 + 54, text);
-                    blit();
-                    break;
-                }
-                case INPUT_EVENT_TYPE_SCANCODE: {
-                    ESP_LOGI(TAG, "Scancode event 0x%0" PRIX32, (uint32_t)event.args_scancode.scancode);
-                    pax_simple_rect(&fb, 0xFFFFFFFF, 0, 300 + 0, pax_buf_get_width(&fb), 72);
-                    pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 300 + 0, "Scancode event");
-                    char text[64];
-                    snprintf(text, sizeof(text), "Scancode:  0x%0" PRIX32, (uint32_t)event.args_scancode.scancode);
-                    pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 300 + 36, text);
-                    blit();
-                    break;
-                }
-                default:
-                    break;
             }
         }
     }
+
+    esp_restart();
 }

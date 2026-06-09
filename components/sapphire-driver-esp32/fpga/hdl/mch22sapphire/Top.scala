@@ -6,8 +6,9 @@ package mch22sapphire
 import spinal.core._
 import sapphire.phy.spi._
 import sapphire.interface.cmd.CmdEngine
+import sapphire.interface.cmd.DebugRegFile
 import sapphire.SapphireCfg
-import sapphire.dma.SpiMemCtrl
+import sapphire.mem.SpiMemCtrl
 
 case class Top() extends Component {
     val io = new Bundle {
@@ -83,6 +84,27 @@ case class Top() extends Component {
     settings.preWriteCycles := 0
     settings.csResetCycles  := 2
 
+    /** Debug register file; aggregates debug taps and serves them to the
+      * command engine over a debug bus.
+      */
+    val debugRegs = DebugRegFile(
+        Seq(
+            spiMemCtrl.addr.getBitsWidth bits,         // 0: buffered DMA address.
+            spiMemCtrl.buffer.getBitsWidth bits,       // 1: command / address buffer.
+            spiMemCtrl.state.asBits.getBitsWidth bits, // 2: FSM state (one-hot).
+            30 bits,                                   // 3: DMA setup + stream ready signals.
+            8 bits,                                    // 4: DMA write data payload.
+            8 bits                                     // 5: DMA read data payload.
+        )
+    )
+    debugRegs.io.regs(0) := spiMemCtrl.addr.asBits
+    debugRegs.io.regs(1) := spiMemCtrl.buffer
+    debugRegs.io.regs(2) := spiMemCtrl.state.asBits
+    debugRegs.io.regs(3) := spiMemCtrl.io.dma.setup.asBits ##
+        spiMemCtrl.io.dma.wdata.ready ## spiMemCtrl.io.dma.rdata.ready
+    debugRegs.io.regs(4) := spiMemCtrl.io.dma.wdata.payload
+    debugRegs.io.regs(5) := spiMemCtrl.io.dma.rdata.payload
+
     /** Command engine. */
     val cmdEngine = CmdEngine(cfg)
     cmdEngine.io.chipSelect := io.slaveChipSelect
@@ -100,6 +122,8 @@ case class Top() extends Component {
     spiMaster.io.bus <> spiMemCtrl.io.spi
 
     spiMemCtrl.io.dma <> cmdEngine.io.dma
+
+    cmdEngine.io.debug <> debugRegs.io.debug
 
     cmdEngine.io.rxd << spiSlave.io.rxd
     cmdEngine.io.txd >> spiSlave.io.txd

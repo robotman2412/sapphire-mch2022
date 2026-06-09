@@ -18,5 +18,12 @@ esp_err_t sapphire_read_mem(uint64_t addr, void* rdata, size_t len);
 // Write a span of GPU memory.
 esp_err_t sapphire_write_mem(uint64_t addr, void const* wdata, size_t len);
 
+// Dump the SPI memory controller's FSM state (least verbose).
+void sapphire_dump_state();
+// Dump the FSM state plus the DMA bus signals (medium verbosity).
+void sapphire_dump_dma();
+// Dump the complete SPI memory controller debug state (most verbose).
+void sapphire_dump_full();
+
 // Do a test thingy.
 esp_err_t sapphire_driver_test();

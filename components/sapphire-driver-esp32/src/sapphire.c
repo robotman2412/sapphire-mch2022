@@ -7,6 +7,8 @@
 #include "driver/gpio.h"
 #include "esp_timer.h"
 #include "sapphire_cmd.h"
+#include "sapphire_misc.h"
+#include "sapphire_structs.h"
 #include "sapphire_transport.h"
 
 static char const TAG[] = "sapphire";
@@ -126,14 +128,94 @@ esp_err_t sapphire_write_mem(uint64_t addr, void const* wdata_, size_t len) {
     return ESP_OK;
 }
 
+// Read a single debug register into a 32-bit word; logs and returns 0 on error.
+static uint32_t sapphire_dbg_read(uint16_t reg) {
+    uint32_t  val = 0;
+    esp_err_t res = sapphire_cmd_debug(reg, &val, sizeof(val));
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to read debug register %u: %s", reg, esp_err_to_name(res));
+        return 0;
+    }
+    return val;
+}
+
+// Human-readable name for the SPI memory controller's one-hot FSM state.
+static char const* sapphire_dbg_state_name(uint32_t state) {
+    switch (state) {
+        case SAPPHIRE_DBG_STATE_RESET:
+            return "RESET";
+        case SAPPHIRE_DBG_STATE_IDLE:
+            return "IDLE";
+        case SAPPHIRE_DBG_STATE_CMD:
+            return "CMD";
+        case SAPPHIRE_DBG_STATE_PRE_ADDR:
+            return "PRE_ADDR";
+        case SAPPHIRE_DBG_STATE_ADDR:
+            return "ADDR";
+        case SAPPHIRE_DBG_STATE_PRE_DATA:
+            return "PRE_DATA";
+        case SAPPHIRE_DBG_STATE_DATA:
+            return "DATA";
+        default:
+            return "<invalid>";
+    }
+}
+
+// Dump the SPI memory controller's FSM state (least verbose).
+void sapphire_dump_state() {
+    uint32_t state = sapphire_dbg_read(SAPPHIRE_DBG_REG_STATE);
+    ESP_LOGI(TAG, "SPI mem state:  %s (one-hot 0x%02x)", sapphire_dbg_state_name(state), state);
+}
+
+// Dump the FSM state plus the DMA bus signals (medium verbosity).
+void sapphire_dump_dma() {
+    sapphire_dump_state();
+    uint32_t dma = sapphire_dbg_read(SAPPHIRE_DBG_REG_DMA);
+    ESP_LOGI(TAG, "DMA setup:      %s%s%s%s%s addr=0x%06x", SAPPHIRE_DBG_DMA_WRITE(dma) ? "write " : "read ",
+             SAPPHIRE_DBG_DMA_SETUP(dma) ? "setup " : "", SAPPHIRE_DBG_DMA_SETUP_READY(dma) ? "setup_rdy " : "",
+             SAPPHIRE_DBG_DMA_TEARDOWN(dma) ? "teardown " : "",
+             SAPPHIRE_DBG_DMA_TEARDOWN_READY(dma) ? "teardown_rdy " : "", SAPPHIRE_DBG_DMA_ADDR(dma));
+    ESP_LOGI(TAG, "DMA streams:    wdata.ready=%u rdata.ready=%u", SAPPHIRE_DBG_DMA_WDATA_READY(dma),
+             SAPPHIRE_DBG_DMA_RDATA_READY(dma));
+}
+
+// Dump the complete SPI memory controller debug state (most verbose).
+void sapphire_dump_full() {
+    sapphire_dump_dma();
+    uint32_t addr   = sapphire_dbg_read(SAPPHIRE_DBG_REG_ADDR);
+    uint32_t buffer = sapphire_dbg_read(SAPPHIRE_DBG_REG_BUFFER);
+    uint32_t wdata  = sapphire_dbg_read(SAPPHIRE_DBG_REG_WDATA);
+    uint32_t rdata  = sapphire_dbg_read(SAPPHIRE_DBG_REG_RDATA);
+    ESP_LOGI(TAG, "SPI mem addr:   0x%06x", SAPPHIRE_DBG_ADDR_VALUE(addr));
+    ESP_LOGI(TAG, "SPI mem buffer: 0x%06x", SAPPHIRE_DBG_BUFFER_VALUE(buffer));
+    ESP_LOGI(TAG, "DMA payloads:   wdata=0x%02x rdata=0x%02x", SAPPHIRE_DBG_WDATA_VALUE(wdata),
+             SAPPHIRE_DBG_RDATA_VALUE(rdata));
+}
+
 // Do a test thingy.
 esp_err_t sapphire_driver_test() {
-    char const my_data[]             = "This test string will be in GPU memory.";
-    char       rbuf[sizeof(my_data)] = {0};
+    char const     my_data[]             = "This test string will be in GPU memory.";
+    // char const     my_data[]             = "A different message for GRAPHICQUE.";
+    char           rbuf[sizeof(my_data)] = {0};
+    uint32_t const addr                  = 0xcafe;
+
+    sapphire_statreg_t statreg;
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_status(&statreg));
+    ESP_LOGI(TAG, "IRQ state: %08x   IRQ enable: %08x", statreg.irq_state, statreg.irq_enable);
+
     ESP_LOGI(TAG, "Starting write test");
-    ESP_ERROR_CHECK_RETURN(sapphire_write_mem(14, my_data, sizeof(my_data) - 1));
+    esp_err_t res = sapphire_write_mem(addr, my_data, sizeof(my_data) - 1);
+    sapphire_dump_full();
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_status(&statreg));
+    ESP_LOGI(TAG, "IRQ state: %08x   IRQ enable: %08x", statreg.irq_state, statreg.irq_enable);
+    if (res != ESP_OK) return res;
     ESP_LOGI(TAG, "Write test succeeded");
-    ESP_ERROR_CHECK_RETURN(sapphire_read_mem(14, rbuf, sizeof(my_data) - 1));
+
+    res = sapphire_read_mem(addr, rbuf, sizeof(my_data) - 1);
+    sapphire_dump_full();
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_status(&statreg));
+    ESP_LOGI(TAG, "IRQ state: %08x   IRQ enable: %08x", statreg.irq_state, statreg.irq_enable);
+    if (res != ESP_OK) return res;
     ESP_LOGI(TAG, "Read test succeeded; read data: %s", rbuf);
 
     return ESP_OK;

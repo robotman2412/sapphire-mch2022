@@ -25,5 +25,6 @@
         "stdint.h": "c",
         "sapphire_transport.h": "c",
         "esp_err.h": "c"
-    }
+    },
+    "editor.formatOnSave": true
 }

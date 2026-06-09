@@ -22,4 +22,6 @@ esp_err_t sapphire_cmd_read_payload(void* r_data, size_t r_data_len);
 // Set up DMA for writing
 esp_err_t sapphire_cmd_write_dma(uint64_t p_addr);
 // Send DMA write data
-esp_err_t sapphire_cmd_write_payload(void* p_data, size_t p_data_len);
+esp_err_t sapphire_cmd_write_payload(void const* p_data, size_t p_data_len);
+// Read a debug register.
+esp_err_t sapphire_cmd_debug(uint16_t p_register, void* r_data, size_t r_data_len);
