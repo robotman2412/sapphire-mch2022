@@ -3,12 +3,12 @@ package mch22sapphire
 // SPDX-License-Identifier: MIT
 // SPDX-CopyRightText: 2025 Julian Scheffers <julian@scheffers.net>
 
-import spinal.core._
+import sapphire._
 import sapphire.phy.spi._
-import sapphire.interface.cmd.CmdEngine
-import sapphire.interface.cmd.DebugRegFile
-import sapphire.SapphireCfg
-import sapphire.mem.SpiMemCtrl
+import sapphire.interface.cmd._
+import sapphire.mem._
+import spinal.core._
+import spinal.lib._
 
 case class Top() extends Component {
     val io = new Bundle {
@@ -43,6 +43,11 @@ case class Top() extends Component {
         /** Serial transmit data. */
         val slaveMiso = out port Bool()
     }
+
+    // Buffer the asynchronous input signals.
+    val slaveChipSelect = BufferCC(io.slaveChipSelect, False)
+    val slaveSclk       = BufferCC(io.slaveSclk, False)
+    val slaveMosi       = BufferCC(io.slaveMosi, False)
 
     /** Global sapphire configuration. */
     val cfg = SapphireCfg(ramSize = 0x800000)
@@ -107,15 +112,15 @@ case class Top() extends Component {
 
     /** Command engine. */
     val cmdEngine = CmdEngine(cfg)
-    cmdEngine.io.chipSelect := io.slaveChipSelect
+    cmdEngine.io.chipSelect := slaveChipSelect
     cmdEngine.io.irqIn      := 0
     io.irqOut               := cmdEngine.io.irqOut
 
     /** SPI slave PHY. */
     val spiSlave = SimpleSpiSlave()
-    spiSlave.io.chipSelect := io.slaveChipSelect
-    spiSlave.io.sclk       := io.slaveSclk
-    spiSlave.io.mosi       := io.slaveMosi
+    spiSlave.io.chipSelect := slaveChipSelect
+    spiSlave.io.sclk       := slaveSclk
+    spiSlave.io.mosi       := slaveMosi
     io.slaveMiso           := spiSlave.io.miso
 
     // Inter-component connections.
@@ -123,7 +128,8 @@ case class Top() extends Component {
 
     spiMemCtrl.io.dma <> cmdEngine.io.dma
 
-    cmdEngine.io.debug <> debugRegs.io.debug
+    // cmdEngine.io.debug <> debugRegs.io.debug
+    cmdEngine.io.debug.data := cmdEngine.io.debug.index.asBits.resized
 
     cmdEngine.io.rxd << spiSlave.io.rxd
     cmdEngine.io.txd >> spiSlave.io.txd
