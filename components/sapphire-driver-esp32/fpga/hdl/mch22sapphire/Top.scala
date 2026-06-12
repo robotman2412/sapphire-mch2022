@@ -128,8 +128,7 @@ case class Top() extends Component {
 
     spiMemCtrl.io.dma <> cmdEngine.io.dma
 
-    // cmdEngine.io.debug <> debugRegs.io.debug
-    cmdEngine.io.debug.data := cmdEngine.io.debug.index.asBits.resized
+    cmdEngine.io.debug <> debugRegs.io.debug
 
     cmdEngine.io.rxd << spiSlave.io.rxd
     cmdEngine.io.txd >> spiSlave.io.txd

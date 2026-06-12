@@ -139,6 +139,10 @@ size-components:
 size-files:
 	source "$(IDF_PATH)/export.sh" && idf.py -B $(BUILD) size-files
 
+.PHONY: sim
+sim:
+	$(MAKE) -C components/sapphire-driver-esp32/fpga sim
+
 # Formatting
 
 .PHONY: format
