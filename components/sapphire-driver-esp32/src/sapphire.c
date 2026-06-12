@@ -57,7 +57,7 @@ esp_err_t sapphire_read_mem(uint64_t addr, void* rdata_, size_t len) {
         return ESP_ERR_INVALID_SIZE;
     }
 
-    ESP_ERROR_CHECK_RETURN(sapphire_cmd_irq_enable(SAPPHIRE_IRQ_DMA_ERROR | SAPPHIRE_IRQ_DMA_READY));
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_irq_enable(SAPPHIRE_IRQ_DMA_READY));
     while (len) {
         size_t max = len < SAPPHIRE_MAX_TRANSFER_SIZE ? len : SAPPHIRE_MAX_TRANSFER_SIZE;
         ESP_ERROR_CHECK_RETURN(sapphire_cmd_read_dma(addr));
@@ -78,7 +78,11 @@ esp_err_t sapphire_read_mem(uint64_t addr, void* rdata_, size_t len) {
         if (!gpio_get_level(39)) {
             ESP_ERROR_CHECK_RETURN(sapphire_cmd_irq_clear(SAPPHIRE_IRQ_DMA_ERROR, &irq_status));
             ESP_LOGE(TAG, "GPU reports DMA transfer failure");
+            sapphire_cmd_dma_teardown();
+            return ESP_FAIL;
         }
+        ESP_ERROR_CHECK_RETURN(sapphire_cmd_dma_teardown());
+        addr  += max;
         len   -= max;
         rdata += max;
     }
@@ -120,7 +124,11 @@ esp_err_t sapphire_write_mem(uint64_t addr, void const* wdata_, size_t len) {
         if (!gpio_get_level(39)) {
             ESP_ERROR_CHECK_RETURN(sapphire_cmd_irq_clear(SAPPHIRE_IRQ_DMA_ERROR, &irq_status));
             ESP_LOGE(TAG, "GPU reports DMA transfer failure");
+            sapphire_cmd_dma_teardown();
+            return ESP_FAIL;
         }
+        ESP_ERROR_CHECK_RETURN(sapphire_cmd_dma_teardown());
+        addr  += max;
         len   -= max;
         wdata += max;
     }
@@ -186,10 +194,16 @@ void sapphire_dump_full() {
     uint32_t buffer = sapphire_dbg_read(SAPPHIRE_DBG_REG_BUFFER);
     uint32_t wdata  = sapphire_dbg_read(SAPPHIRE_DBG_REG_WDATA);
     uint32_t rdata  = sapphire_dbg_read(SAPPHIRE_DBG_REG_RDATA);
+    uint32_t err    = sapphire_dbg_read(SAPPHIRE_DBG_REG_ERR);
     ESP_LOGI(TAG, "SPI mem addr:   0x%06x", SAPPHIRE_DBG_ADDR_VALUE(addr));
     ESP_LOGI(TAG, "SPI mem buffer: 0x%06x", SAPPHIRE_DBG_BUFFER_VALUE(buffer));
     ESP_LOGI(TAG, "DMA payloads:   wdata=0x%02x rdata=0x%02x", SAPPHIRE_DBG_WDATA_VALUE(wdata),
              SAPPHIRE_DBG_RDATA_VALUE(rdata));
+    ESP_LOGI(TAG, "DMA err diag:   %s rdata(v=%u r=%u) wdata(v=%u r=%u) spi(busy=%u act_v=%u act_r=%u) read_cap=%u",
+             SAPPHIRE_DBG_ERR_IS_WRITE(err) ? "write" : "read", SAPPHIRE_DBG_ERR_RDATA_VALID(err),
+             SAPPHIRE_DBG_ERR_RDATA_READY(err), SAPPHIRE_DBG_ERR_WDATA_VALID(err), SAPPHIRE_DBG_ERR_WDATA_READY(err),
+             SAPPHIRE_DBG_ERR_SPI_BUSY(err), SAPPHIRE_DBG_ERR_ACT_VALID(err), SAPPHIRE_DBG_ERR_ACT_READY(err),
+             SAPPHIRE_DBG_ERR_READ_CAP(err));
 }
 
 // Do a test thingy.
@@ -198,6 +212,8 @@ esp_err_t sapphire_driver_test() {
     // char const     my_data[]             = "A different message for GRAPHICQUE.";
     char           rbuf[sizeof(my_data)] = {0};
     uint32_t const addr                  = 0xcafe;
+
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_debug_triggers(SAPPHIRE_DBG_LATCH_DMAERR));
 
     sapphire_statreg_t statreg;
     ESP_ERROR_CHECK_RETURN(sapphire_cmd_status(&statreg));

@@ -60,12 +60,19 @@ object FullSim extends App {
         spiTrns(Seq.fill(32)(0))
 
         // Enable DMA interrupts.
-        spiTrns(Seq(4, 0x03, 0x00, 0x00, 0x00))
+        spiTrns(Seq(4, 0x01, 0x00, 0x00, 0x00))
 
         // Run a DMA write.
         spiTrns(Seq(10, 0xfe, 0xca, 0x00, 0x00))
         dut.clockDomain.waitSamplingWhere(dut.io.irqOut.toBoolean)
         spiTrns(Seq(11, 0xef, 0xbe, 0xad, 0xde))
+
+        // Run a DMA read.
+        spiTrns(Seq(8, 0xfe, 0xca, 0x00, 0x00))
+        dut.clockDomain.waitSamplingWhere(dut.io.irqOut.toBoolean)
+        spiTrns(Seq(9))
+        spiTrns(Seq(0, 0, 0, 0))
+        spiTrns(Seq(14))
 
         // Collect some extra samples before the sim ends.
         dut.clockDomain.waitSampling(40)

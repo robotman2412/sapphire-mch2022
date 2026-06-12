@@ -99,7 +99,8 @@ case class Top() extends Component {
             spiMemCtrl.state.asBits.getBitsWidth bits, // 2: FSM state (one-hot).
             30 bits,                                   // 3: DMA setup + stream ready signals.
             8 bits,                                    // 4: DMA write data payload.
-            8 bits                                     // 5: DMA read data payload.
+            8 bits,                                    // 5: DMA read data payload.
+            10 bits                                    // 6: DMA error diagnosis.
         )
     )
     debugRegs.io.regs(0) := spiMemCtrl.addr.asBits
@@ -109,6 +110,18 @@ case class Top() extends Component {
         spiMemCtrl.io.dma.wdata.ready ## spiMemCtrl.io.dma.rdata.ready
     debugRegs.io.regs(4) := spiMemCtrl.io.dma.wdata.payload
     debugRegs.io.regs(5) := spiMemCtrl.io.dma.rdata.payload
+    // 6: why is the DMA stream stalling? Captures the full DMA handshake, the
+    // SPI engine status and the read-buffer occupancy. Latch on DMAERR to
+    // freeze the state at the moment dma_error is raised.
+    debugRegs.io.regs(6) := spiMemCtrl.readCap.asBits ##
+        spiMemCtrl.isWrite ##
+        spiMemCtrl.io.spi.action.ready ##
+        spiMemCtrl.io.spi.action.valid ##
+        spiMemCtrl.io.spi.busy ##
+        spiMemCtrl.io.dma.wdata.ready ##
+        spiMemCtrl.io.dma.wdata.valid ##
+        spiMemCtrl.io.dma.rdata.ready ##
+        spiMemCtrl.io.dma.rdata.valid
 
     /** Command engine. */
     val cmdEngine = CmdEngine(cfg)

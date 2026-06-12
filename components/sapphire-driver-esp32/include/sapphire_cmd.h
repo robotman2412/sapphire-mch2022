@@ -25,3 +25,7 @@ esp_err_t sapphire_cmd_write_dma(uint64_t p_addr);
 esp_err_t sapphire_cmd_write_payload(void const* p_data, size_t p_data_len);
 // Read a debug register.
 esp_err_t sapphire_cmd_debug(uint16_t p_register, void* r_data, size_t r_data_len);
+// Select which events latch the debug registers (SAPPHIRE_DBG_LATCH_* bitmask).
+esp_err_t sapphire_cmd_debug_triggers(uint8_t p_triggers);
+// Tear down the current DMA transfer.
+esp_err_t sapphire_cmd_dma_teardown(void);
