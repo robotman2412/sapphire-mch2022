@@ -44,6 +44,8 @@ case class Top() extends Component {
         val slaveMiso = out port Bool()
     }
 
+    val enableDebug = false
+
     // Buffer the asynchronous input signals.
     val slaveChipSelect = BufferCC(io.slaveChipSelect, False)
     val slaveSclk       = BufferCC(io.slaveSclk, False)
@@ -92,7 +94,7 @@ case class Top() extends Component {
     /** Debug register file; aggregates debug taps and serves them to the
       * command engine over a debug bus.
       */
-    val debugRegs = DebugRegFile(
+    val debugRegs = enableDebug generate DebugRegFile(
         Seq(
             spiMemCtrl.addr.getBitsWidth bits,         // 0: buffered DMA address.
             spiMemCtrl.buffer.getBitsWidth bits,       // 1: command / address buffer.
@@ -103,28 +105,30 @@ case class Top() extends Component {
             10 bits                                    // 6: DMA error diagnosis.
         )
     )
-    debugRegs.io.regs(0) := spiMemCtrl.addr.asBits
-    debugRegs.io.regs(1) := spiMemCtrl.buffer
-    debugRegs.io.regs(2) := spiMemCtrl.state.asBits
-    debugRegs.io.regs(3) := spiMemCtrl.io.dma.setup.asBits ##
-        spiMemCtrl.io.dma.wdata.ready ## spiMemCtrl.io.dma.rdata.ready
-    debugRegs.io.regs(4) := spiMemCtrl.io.dma.wdata.payload
-    debugRegs.io.regs(5) := spiMemCtrl.io.dma.rdata.payload
-    // 6: why is the DMA stream stalling? Captures the full DMA handshake, the
-    // SPI engine status and the read-buffer occupancy. Latch on DMAERR to
-    // freeze the state at the moment dma_error is raised.
-    debugRegs.io.regs(6) := spiMemCtrl.readCap.asBits ##
-        spiMemCtrl.isWrite ##
-        spiMemCtrl.io.spi.action.ready ##
-        spiMemCtrl.io.spi.action.valid ##
-        spiMemCtrl.io.spi.busy ##
-        spiMemCtrl.io.dma.wdata.ready ##
-        spiMemCtrl.io.dma.wdata.valid ##
-        spiMemCtrl.io.dma.rdata.ready ##
-        spiMemCtrl.io.dma.rdata.valid
+    if (enableDebug) {
+        debugRegs.io.regs(0) := spiMemCtrl.addr.asBits
+        debugRegs.io.regs(1) := spiMemCtrl.buffer
+        debugRegs.io.regs(2) := spiMemCtrl.state.asBits
+        debugRegs.io.regs(3) := spiMemCtrl.io.dma.setup.asBits ##
+            spiMemCtrl.io.dma.wdata.ready ## spiMemCtrl.io.dma.rdata.ready
+        debugRegs.io.regs(4) := spiMemCtrl.io.dma.wdata.payload
+        debugRegs.io.regs(5) := spiMemCtrl.io.dma.rdata.payload
+        // 6: why is the DMA stream stalling? Captures the full DMA handshake, the
+        // SPI engine status and the read-buffer occupancy. Latch on DMAERR to
+        // freeze the state at the moment dma_error is raised.
+        debugRegs.io.regs(6) := spiMemCtrl.readCap.asBits ##
+            spiMemCtrl.isWrite ##
+            spiMemCtrl.io.spi.action.ready ##
+            spiMemCtrl.io.spi.action.valid ##
+            spiMemCtrl.io.spi.busy ##
+            spiMemCtrl.io.dma.wdata.ready ##
+            spiMemCtrl.io.dma.wdata.valid ##
+            spiMemCtrl.io.dma.rdata.ready ##
+            spiMemCtrl.io.dma.rdata.valid
+    }
 
     /** Command engine. */
-    val cmdEngine = CmdEngine(cfg)
+    val cmdEngine = CmdEngine(cfg, enableDebug)
     cmdEngine.io.chipSelect := slaveChipSelect
     cmdEngine.io.irqIn      := 0
     io.irqOut               := cmdEngine.io.irqOut
@@ -141,7 +145,7 @@ case class Top() extends Component {
 
     spiMemCtrl.io.dma <> cmdEngine.io.dma
 
-    cmdEngine.io.debug <> debugRegs.io.debug
+    if (enableDebug) cmdEngine.io.debug <> debugRegs.io.debug
 
     cmdEngine.io.rxd << spiSlave.io.rxd
     cmdEngine.io.txd >> spiSlave.io.txd

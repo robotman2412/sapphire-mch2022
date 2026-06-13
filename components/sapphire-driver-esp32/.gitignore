@@ -1,1 +1,6 @@
-**/simWorkspace
+.bloop
+build
+project
+target
+simWorkspace
+bitstream.bin
