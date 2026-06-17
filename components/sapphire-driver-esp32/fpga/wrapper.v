@@ -5,7 +5,7 @@ module wrapper (
     input  wire      clk_12m,
     output wire      irq_out_n,
 
-    output wire      lcd_cs_n,
+    inout  wire      lcd_cs_n,
     output wire      lcd_rsel,
     input  wire      lcd_mode,
     input  wire      lcd_fsync,

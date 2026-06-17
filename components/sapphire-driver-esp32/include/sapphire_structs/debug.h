@@ -1,0 +1,93 @@
+
+// SPDX-License-Identifier: MIT
+// SPDX-CopyRightText: 2026 Julian Scheffers <julian@scheffers.net>
+
+#pragma once
+
+#include <stdint.h>
+
+// Debug latch triggers (updated via SAPPHIRE_CMD_DEBUG_TRIGGERS).
+//
+// Every debug register implemented is latched when one or more of the following triggers happen.
+// The register is initialized to SAPPHIRE_DBG_LATCH_DBGCMD.
+
+// Debug latch: command byte read, and command byte is SAPPHIRE_CMD_DEBUG_READ.
+#define SAPPHIRE_DBG_LATCH_DBGCMD  (1 << 0)
+// Debug latch: command byte read, and command byte is *not* SAPPHIRE_CMD_DEBUG_READ.
+#define SAPPHIRE_DBG_LATCH_CMDBYTE (1 << 1)
+// Debug latch: DMA error occurred.
+#define SAPPHIRE_DBG_LATCH_DMAERR  (1 << 2)
+// Debug latch: DMA data byte transferred.
+#define SAPPHIRE_DBG_LATCH_DMABYTE (1 << 3)
+// Debug latch: an enabled interrupt was raised.
+#define SAPPHIRE_DBG_LATCH_IRQ     (1 << 4)
+
+// Debug registers (read via SAPPHIRE_CMD_DEBUG_READ).
+//
+// The DEBUG READ command returns the selected register as a little-endian
+// 4-byte (30 significant bit) value, so each register is read into a uint32_t.
+// The SAPPHIRE_DBG_* macros below unpack the individual signals from that word;
+// the bit layouts mirror the SPI memory controller / DMA bus HDL, where a
+// Bundle's first-declared field occupies the least-significant bits.
+
+// Index of each debug register (parameter to SAPPHIRE_CMD_DEBUG_READ).
+// SPI mem controller: buffered DMA start address (23 bits).
+#define SAPPHIRE_DBG_REG_ADDR   0
+// SPI mem controller: command / address shift buffer (23 bits).
+#define SAPPHIRE_DBG_REG_BUFFER 1
+// SPI mem controller: one-hot FSM state (7 bits).
+#define SAPPHIRE_DBG_REG_STATE  2
+// DMA setup bus signals plus the write/read stream ready flags.
+#define SAPPHIRE_DBG_REG_DMA    3
+// DMA write-data stream payload byte.
+#define SAPPHIRE_DBG_REG_WDATA  4
+// DMA read-data stream payload byte.
+#define SAPPHIRE_DBG_REG_RDATA  5
+// DMA error diagnosis: full handshake + SPI engine status + read capacity.
+#define SAPPHIRE_DBG_REG_ERR    6
+
+// Reg 0 (ADDR): buffered DMA start address.
+#define SAPPHIRE_DBG_ADDR_VALUE(r) ((uint32_t)(r) & 0x7fffffu)
+
+// Reg 1 (BUFFER): command / address shift buffer.
+#define SAPPHIRE_DBG_BUFFER_VALUE(r) ((uint32_t)(r) & 0x7fffffu)
+
+// Reg 2 (STATE): one-hot FSM state; test against these masks.
+#define SAPPHIRE_DBG_STATE_RESET    (1u << 0)  // Resetting the chip.
+#define SAPPHIRE_DBG_STATE_IDLE     (1u << 1)  // Idle; waiting for DMA setup.
+#define SAPPHIRE_DBG_STATE_CMD      (1u << 2)  // Sending command.
+#define SAPPHIRE_DBG_STATE_PRE_ADDR (1u << 3)  // Command to address dummy cycles.
+#define SAPPHIRE_DBG_STATE_ADDR     (1u << 4)  // Sending address.
+#define SAPPHIRE_DBG_STATE_PRE_DATA (1u << 5)  // Address to data dummy cycles.
+#define SAPPHIRE_DBG_STATE_DATA     (1u << 6)  // Ready to transfer data.
+
+// Reg 3 (DMA): setup bus signals and stream ready flags.
+#define SAPPHIRE_DBG_DMA_RDATA_READY(r)    (((uint32_t)(r) >> 0) & 1u)         // rdata stream ready.
+#define SAPPHIRE_DBG_DMA_WDATA_READY(r)    (((uint32_t)(r) >> 1) & 1u)         // wdata stream ready.
+#define SAPPHIRE_DBG_DMA_SETUP(r)          (((uint32_t)(r) >> 2) & 1u)         // setup requested.
+#define SAPPHIRE_DBG_DMA_SETUP_READY(r)    (((uint32_t)(r) >> 3) & 1u)         // ready for setup.
+#define SAPPHIRE_DBG_DMA_TEARDOWN(r)       (((uint32_t)(r) >> 4) & 1u)         // teardown requested.
+#define SAPPHIRE_DBG_DMA_TEARDOWN_READY(r) (((uint32_t)(r) >> 5) & 1u)         // ready for teardown.
+#define SAPPHIRE_DBG_DMA_WRITE(r)          (((uint32_t)(r) >> 6) & 1u)         // access is a write.
+#define SAPPHIRE_DBG_DMA_ADDR(r)           (((uint32_t)(r) >> 7) & 0x7fffffu)  // setup start address.
+
+// Reg 4 (WDATA): DMA write-data payload byte.
+#define SAPPHIRE_DBG_WDATA_VALUE(r) ((uint32_t)(r) & 0xffu)
+
+// Reg 5 (RDATA): DMA read-data payload byte.
+#define SAPPHIRE_DBG_RDATA_VALUE(r) ((uint32_t)(r) & 0xffu)
+
+// Reg 6 (ERR): why the DMA stream stalls; latch on SAPPHIRE_DBG_LATCH_DMAERR.
+// A write dma_error means wdata_valid=1 while wdata_ready=0 (the SPI engine
+// could not accept the byte); a read dma_error means rdata_ready=1 while
+// rdata_valid=0 (the read buffer underran). spi_busy / read_cap show whether
+// the SPI engine was mid-transfer and how empty the read buffer was.
+#define SAPPHIRE_DBG_ERR_RDATA_VALID(r) (((uint32_t)(r) >> 0) & 1u)  // backend has read data.
+#define SAPPHIRE_DBG_ERR_RDATA_READY(r) (((uint32_t)(r) >> 1) & 1u)  // host ready to read.
+#define SAPPHIRE_DBG_ERR_WDATA_VALID(r) (((uint32_t)(r) >> 2) & 1u)  // host offering write data.
+#define SAPPHIRE_DBG_ERR_WDATA_READY(r) (((uint32_t)(r) >> 3) & 1u)  // backend can accept write.
+#define SAPPHIRE_DBG_ERR_SPI_BUSY(r)    (((uint32_t)(r) >> 4) & 1u)  // SPI engine mid-transfer.
+#define SAPPHIRE_DBG_ERR_ACT_VALID(r)   (((uint32_t)(r) >> 5) & 1u)  // SPI action offered.
+#define SAPPHIRE_DBG_ERR_ACT_READY(r)   (((uint32_t)(r) >> 6) & 1u)  // SPI engine ready for action.
+#define SAPPHIRE_DBG_ERR_IS_WRITE(r)    (((uint32_t)(r) >> 7) & 1u)  // current transfer is a write.
+#define SAPPHIRE_DBG_ERR_READ_CAP(r)    (((uint32_t)(r) >> 8) & 3u)  // free slots in the read buffer.
