@@ -28,3 +28,7 @@
 #define SAPPHIRE_CMD_DEBUG_TRIGGERS 13
 // Tear down the current DMA transfer.
 #define SAPPHIRE_CMD_DMA_TEARDOWN   14
+// Read I/O register.
+#define SAPPHIRE_CMD_IOREAD         15
+// Write I/O register.
+#define SAPPHIRE_CMD_IOWRITE        16

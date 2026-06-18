@@ -73,3 +73,20 @@ esp_err_t sapphire_cmd_debug_triggers(uint8_t p_triggers) {
 esp_err_t sapphire_cmd_dma_teardown(void) {
     return sapphire_do_cmd(SAPPHIRE_CMD_DMA_TEARDOWN, NULL, 0, NULL, 0);
 }
+
+// Read an I/O register.
+esp_err_t sapphire_cmd_ioread(uint16_t p_addr, uint32_t* r_data) {
+    return sapphire_do_cmd(SAPPHIRE_CMD_IOREAD, &p_addr, 2, r_data, 4);
+}
+
+// Write an I/O register.
+esp_err_t sapphire_cmd_iowrite(uint16_t p_addr, uint32_t p_data) {
+    uint8_t payload[6];
+    payload[0] = (uint8_t)p_addr;
+    payload[1] = (uint8_t)(p_addr >> 8);
+    payload[2] = (uint8_t)p_data;
+    payload[3] = (uint8_t)(p_data >> 8);
+    payload[4] = (uint8_t)(p_data >> 16);
+    payload[5] = (uint8_t)(p_data >> 24);
+    return sapphire_do_cmd(SAPPHIRE_CMD_IOWRITE, payload, sizeof(payload), NULL, 0);
+}

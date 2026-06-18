@@ -15,15 +15,19 @@
 #define SAPPHIRE_SCANOUT_CAP_NEGOTIATION (UINT32_C(1) << 2)
 // Scanout capability: supports sending in-band commands.
 #define SAPPHIRE_SCANOUT_CAP_COMMANDS    (UINT32_C(1) << 3)
+// Scanout capability: supports display reset.
+#define SAPPHIRE_SCANOUT_CAP_RESET       (UINT32_C(1) << 4)
 
 // Scanout control: enabled (read-write; serial type does not automatically send video if enabled).
-#define SAPPHIRE_SCANOUT_CONTROL_ENABLED (UINT32_C(1) << 0)
-// Scanout status: display attached (read-only).
-#define SAPPHIRE_SCANOUT_STATUS_ATTACHED (UINT32_C(1) << 1)
+#define SAPPHIRE_SCANOUT_CONTROL_ENABLED  (UINT32_C(1) << 0)
+// Scanout control: display attached (read-only).
+#define SAPPHIRE_SCANOUT_CONTROL_ATTACHED (UINT32_C(1) << 1)
 // Scanout control: trigger one frame (trigger; only with SAPPHIRE_SCANOUT_CAP_IS_SERIAL).
-#define SAPPHIRE_SCANOUT_CONTROL_TRIGGER (UINT32_C(1) << 2)
+#define SAPPHIRE_SCANOUT_CONTROL_TRIGGER  (UINT32_C(1) << 2)
 // Scanout control: register select; 0: Command, 1: Data (read-write; only with SAPPHIRE_SCANOUT_CAP_IS_SERIAL).
-#define SAPPHIRE_SCANOUT_CONTROL_REGSEL  (UINT32_C(1) << 3)
+#define SAPPHIRE_SCANOUT_CONTROL_REGSEL   (UINT32_C(1) << 3)
+// Scanout control: display reset (read-write; active-high).
+#define SAPPHIRE_SCANOUT_CONTROL_RESET    (UINT32_C(1) << 4)
 
 // Register layout for horizontal or vertical timings for `sapphire_scanout_regs_t`.
 // All pixel counts minus one (i.e. resolution=399 -> 400 pixels)
