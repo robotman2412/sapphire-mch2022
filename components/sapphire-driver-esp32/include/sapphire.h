@@ -5,6 +5,7 @@
 #pragma once
 
 #include "esp_err.h"
+#include "pax_gfx.h"
 #include "sapphire_structs.h"
 
 // Current GPU hardware description structure.
@@ -26,4 +27,4 @@ void sapphire_dump_dma();
 void sapphire_dump_full();
 
 // Do a test thingy.
-esp_err_t sapphire_driver_test();
+esp_err_t sapphire_driver_test(pax_buf_t* gfx);

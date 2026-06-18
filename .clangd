@@ -8,8 +8,8 @@ CompileFlags:
     - -mdisable-hardware-atomics
     - -mfix-esp32-psram-cache-issue
     - -mfix-esp32-psram-cache-strategy=memw
-#  Add:
-#    - -nostdinc
-#    - -isystem /home/julian/the_projects/sapphire-mch2022/esp-idf-tools/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/../lib/gcc/xtensa-esp-elf/14.2.0/include
-#    - -isystem /home/julian/the_projects/sapphire-mch2022/esp-idf-tools/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/../lib/gcc/xtensa-esp-elf/14.2.0/include-fixed
-#    - -isystem /home/julian/the_projects/sapphire-mch2022/esp-idf-tools/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/../lib/gcc/xtensa-esp-elf/14.2.0/../../../../xtensa-esp-elf/include
+  Add:
+    - -nostdlibinc
+    - -isystem /home/julian/the_projects/sapphire-mch2022/esp-idf-tools/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/../lib/gcc/xtensa-esp-elf/14.2.0/include
+    - -isystem /home/julian/the_projects/sapphire-mch2022/esp-idf-tools/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/../lib/gcc/xtensa-esp-elf/14.2.0/include-fixed
+    - -isystem /home/julian/the_projects/sapphire-mch2022/esp-idf-tools/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/../lib/gcc/xtensa-esp-elf/14.2.0/../../../../xtensa-esp-elf/include

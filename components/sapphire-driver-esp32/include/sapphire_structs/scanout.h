@@ -63,3 +63,20 @@ typedef struct {
     // Command/data passthough port (read-write; only with SAPPHIRE_SCANOUT_CAP_IS_SERIAL).
     volatile uint32_t          serial_data;
 } sapphire_scanout_regs_t;
+
+// Register offsets for `sapphire_crt_timing_regs_t`.
+#define SAPPHIRE_CRT_TIMING_REG_FRONT      0x00
+#define SAPPHIRE_CRT_TIMING_REG_RESOLUTION 0x04
+#define SAPPHIRE_CRT_TIMING_REG_BACK       0x08
+#define SAPPHIRE_CRT_TIMING_REG_SYNC       0x0c
+
+// Register offsets for `sapphire_scanout_regs_t`.
+#define SAPPHIRE_SCANOUT_REG_CAPS          0x00
+#define SAPPHIRE_SCANOUT_REG_CONTROL       0x04
+#define SAPPHIRE_SCANOUT_REG_MMU_CTX       0x08
+#define SAPPHIRE_SCANOUT_REG_FB_ADDR_LO    0x0c
+#define SAPPHIRE_SCANOUT_REG_FB_ADDR_HI    0x10
+#define SAPPHIRE_SCANOUT_REG_PIXFMT        0x14
+#define SAPPHIRE_SCANOUT_REG_HTIMING       0x1c
+#define SAPPHIRE_SCANOUT_REG_VTIMING       0x2c
+#define SAPPHIRE_SCANOUT_REG_SERIAL_DATA   0x3c

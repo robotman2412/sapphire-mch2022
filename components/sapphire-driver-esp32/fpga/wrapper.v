@@ -41,6 +41,10 @@ module wrapper (
     assign pmod[3] = spi_miso;
     assign pmod[4] = clk_12m;
     
+    wire lcd_rst;
+    assign lcd_rst_n = lcd_rst  ? 0 : 'bz;
+    assign lcd_cs_n  = lcd_mode ? 0 : 'bz;
+    
     wire[7:0] ram_mosi;
     wire[7:0] ram_mosi_en;
     wire      ram_cs;
@@ -61,6 +65,10 @@ module wrapper (
         .io_slaveSclk       (spi_sclk),
         .io_slaveMiso       (spi_miso),
         .io_slaveMosi       (spi_mosi),
+        .io_dispReset       (lcd_rst),
+        .io_dispStrobe      (lcd_write),
+        .io_dispRegSel      (lcd_rsel),
+        .io_dispData        (lcd_data),
         .clk                (clk_12m)
     );
     

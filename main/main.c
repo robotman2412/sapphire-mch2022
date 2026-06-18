@@ -102,7 +102,7 @@ void app_main(void) {
         esp_restart();
     }
 reset:
-    res = sapphire_driver_test();
+    res = sapphire_driver_test(&fb);
     if (res != ESP_OK) {
         ESP_LOGE(TAG, "Sapphire driver test failed: %s", esp_err_to_name(res));
     }

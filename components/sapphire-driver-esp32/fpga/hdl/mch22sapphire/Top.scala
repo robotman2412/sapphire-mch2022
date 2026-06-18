@@ -9,6 +9,9 @@ import sapphire.interface.cmd._
 import sapphire.mem._
 import spinal.core._
 import spinal.lib._
+import spinal.lib.bus.amba3.apb._
+import sapphire.scanout.Ili9341Scanout
+import spinal.lib.bus.misc.SizeMapping
 
 case class Top() extends Component {
     val io = new Bundle {
@@ -42,19 +45,34 @@ case class Top() extends Component {
 
         /** Serial transmit data. */
         val slaveMiso = out port Bool()
+
+        /** Active-high display reset. */
+        val dispReset = out port Bool()
+
+        /** Display write strobe. */
+        val dispStrobe = out port Bool()
+
+        /** Display register select; 0: Command, 1: Data. */
+        val dispRegSel = out port Bool()
+
+        /** Display data or command byte. */
+        val dispData = out port Bits(8 bits)
     }
 
     val enableDebug = false
 
     // Buffer the asynchronous input signals.
-    val slaveChipSelect = BufferCC(io.slaveChipSelect, False)
-    val slaveSclk       = BufferCC(io.slaveSclk, False)
-    val slaveMosi       = BufferCC(io.slaveMosi, False)
+    val slaveChipSelect = RegNext(io.slaveChipSelect, False)
+    val slaveSclk       = RegNext(io.slaveSclk, False)
+    val slaveMosi       = RegNext(io.slaveMosi, False)
 
     /** Global sapphire configuration. */
     val cfg = SapphireCfg(ramSize = 0x800000)
 
-    /** SPI/QIO master PYH. */
+    /** APB control register bus. */
+    val apb = Apb3(16, 32)
+
+    /** SPI/QIO master PHY. */
     val spiMaster = SpiMaster(SpiCfg.SPI_QIO)
     io.ramSclk        := spiMaster.io.sclk
     io.ramMosi        := spiMaster.io.mosi
@@ -132,6 +150,7 @@ case class Top() extends Component {
     cmdEngine.io.chipSelect := slaveChipSelect
     cmdEngine.io.irqIn      := 0
     io.irqOut               := cmdEngine.io.irqOut
+    cmdEngine.io.apb >> apb
 
     /** SPI slave PHY. */
     val spiSlave = SimpleSpiSlave()
@@ -139,6 +158,23 @@ case class Top() extends Component {
     spiSlave.io.sclk       := slaveSclk
     spiSlave.io.mosi       := slaveMosi
     io.slaveMiso           := spiSlave.io.miso
+
+    /** ILI9341 scanout engine. */
+    val scanout = Ili9341Scanout(cfg)
+    val direct  = Ili9341Scanout.DirectSink()
+    direct.io.in << scanout.io.dispStream
+    io.dispStrobe := direct.io.strobe
+    io.dispRegSel := direct.io.regSel
+    io.dispData   := direct.io.data
+    io.dispReset  := scanout.io.resetOut
+
+    // APB bus connections.
+    val apbDecd   =
+        Apb3Decoder(Apb3Config(16, 32), Seq(SizeMapping(0x0100, 0x100)))
+    apbDecd.io.input << apb
+    val apbRouter = new Apb3Router(Apb3Config(8, 32, 1))
+    apbDecd.io.output >> apbRouter.io.input
+    apbRouter.io.outputs(0) >> scanout.io.apb
 
     // Inter-component connections.
     spiMaster.io.bus <> spiMemCtrl.io.spi
@@ -149,6 +185,12 @@ case class Top() extends Component {
 
     cmdEngine.io.rxd << spiSlave.io.rxd
     cmdEngine.io.txd >> spiSlave.io.txd
+
+    scanout.io.dma.setup.setupReady    := False
+    scanout.io.dma.setup.teardownReady := False
+    scanout.io.dma.wdata.ready         := False
+    scanout.io.dma.rdata.valid         := False
+    scanout.io.dma.rdata.payload.assignDontCare
 }
 
 object Generate extends App {
