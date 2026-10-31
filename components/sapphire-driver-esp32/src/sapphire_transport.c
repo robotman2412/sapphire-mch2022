@@ -39,9 +39,9 @@ ICE40 ice40 = {
     .pin_reset = -1,
 
     // Configuration
-    .spi_speed_full_duplex = 5000000,
-    .spi_speed_half_duplex = 5000000,
-    .spi_speed_turbo       = 5000000,
+    .spi_speed_full_duplex = 1000000,
+    .spi_speed_half_duplex = 1000000,
+    .spi_speed_turbo       = 1000000,
     .spi_input_delay_ns    = 0,
     .spi_max_transfer_size = SAPPHIRE_MAX_TRANSFER_SIZE,
 

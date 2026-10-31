@@ -95,7 +95,7 @@ void app_main(void) {
     pax_draw_text(&fb, 0xFF000000, pax_font_sky_mono, 16, 0, 0, "Hello world!");
     blit();
 
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    vTaskDelay(pdMS_TO_TICKS(1000));
     res = sapphire_init();
     if (res != ESP_OK) {
         ESP_LOGE(TAG, "Failed to init Sapphire driver: %s", esp_err_to_name(res));

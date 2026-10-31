@@ -8,15 +8,21 @@
 #include "sapphire_structs/texture.h"
 
 // Scanout capability: is a CRT controller.
-#define SAPPHIRE_SCANOUT_CAP_IS_CRTC     (UINT32_C(1) << 0)
+#define SAPPHIRE_SCANOUT_CAP_IS_CRTC         (UINT32_C(1) << 0)
 // Scanout capability: is a serial controller.
-#define SAPPHIRE_SCANOUT_CAP_IS_SERIAL   (UINT32_C(1) << 1)
+#define SAPPHIRE_SCANOUT_CAP_IS_SERIAL       (UINT32_C(1) << 1)
 // Scanout capability: supports I2C display negotiation.
-#define SAPPHIRE_SCANOUT_CAP_NEGOTIATION (UINT32_C(1) << 2)
+#define SAPPHIRE_SCANOUT_CAP_NEGOTIATION     (UINT32_C(1) << 2)
 // Scanout capability: supports sending in-band commands.
-#define SAPPHIRE_SCANOUT_CAP_COMMANDS    (UINT32_C(1) << 3)
+#define SAPPHIRE_SCANOUT_CAP_COMMANDS        (UINT32_C(1) << 3)
 // Scanout capability: supports display reset.
-#define SAPPHIRE_SCANOUT_CAP_RESET       (UINT32_C(1) << 4)
+#define SAPPHIRE_SCANOUT_CAP_RESET           (UINT32_C(1) << 4)
+// Scanout capability: supports pixel format conversion.
+// If not supported, the input buffer's format must exactly match the display's format.
+// If supported, the pixels' formats are always converted according to SAPPHIRE_SCANOUT_REG_PIXFMT.
+#define SAPPHIRE_SCANOUT_CAP_PIXCONV         (UINT32_C(1) << 5)
+// Scanout capability: supports partial refresh.
+#define SAPPHIRE_SCANOUT_CAP_PARTIAL_REFRESH (UINT32_C(1) << 6)
 
 // Scanout control: enabled (read-write; serial type does not automatically send video if enabled).
 #define SAPPHIRE_SCANOUT_CONTROL_ENABLED   (UINT32_C(1) << 0)
@@ -32,15 +38,17 @@
 #define SAPPHIRE_SCANOUT_CONTROL_FORCE_SEL (UINT32_C(1) << 5)
 
 // Register layout for horizontal or vertical timings for `sapphire_scanout_regs_t`.
-// All pixel counts minus one (i.e. resolution=399 -> 400 pixels)
 typedef struct {
-    // Front porch cycles (read-write; only with SAPPHIRE_SCANOUT_CAP_IS_CRTC).
+    // Front porch cycles (read-write).
+    // If unimplemented, read-only 0.
     volatile uint32_t front;
     // Resolution / video cycles (read-write).
     volatile uint32_t resolution;
-    // Back porch cycles (read-write; only with SAPPHIRE_SCANOUT_CAP_IS_CRTC).
+    // Back porch cycles (read-write).
+    // If unimplemented, read-only 0.
     volatile uint32_t back;
-    // Sync pulse cycles (read-write; only with SAPPHIRE_SCANOUT_CAP_IS_CRTC).
+    // Sync pulse cycles (read-write).
+    // If unimplemented, read-only 0.
     volatile uint32_t sync;
 } sapphire_crt_timing_regs_t;
 

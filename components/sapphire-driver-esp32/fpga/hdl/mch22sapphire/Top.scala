@@ -12,6 +12,7 @@ import spinal.lib._
 import spinal.lib.bus.amba3.apb._
 import sapphire.scanout.Ili9341Scanout
 import spinal.lib.bus.misc.SizeMapping
+import sapphire.dma.DmaMux
 
 case class Top() extends Component {
     val io = new Bundle {
@@ -62,7 +63,7 @@ case class Top() extends Component {
         val dispData = out port Bits(8 bits)
     }
 
-    val enableDebug = false
+    val enableDebug = true
 
     // Buffer the asynchronous input signals.
     val slaveChipSelect = RegNext(io.slaveChipSelect, False)
@@ -164,7 +165,7 @@ case class Top() extends Component {
 
     /** ILI9341 scanout engine. */
     val scanout = Ili9341Scanout(cfg)
-    val sink    = Ili9341Scanout.SlowSink()
+    val sink    = Ili9341Scanout.SlowSink(1, 1, 0)
     sink.io.in << scanout.io.dispStream
     io.dispStrobe     := sink.io.strobe
     io.dispRegSel     := sink.io.regSel
@@ -183,18 +184,15 @@ case class Top() extends Component {
     // Inter-component connections.
     spiMaster.io.bus <> spiMemCtrl.io.spi
 
-    spiMemCtrl.io.dma <> cmdEngine.io.dma
+    val dmaMux = DmaMux(2, cfg.vaddrBits)
+    dmaMux.io.target <> spiMemCtrl.io.dma
+    dmaMux.io.controllers(0) <> cmdEngine.io.dma
+    dmaMux.io.controllers(1) <> scanout.io.dma
 
     if (enableDebug) cmdEngine.io.debug <> debugRegs.io.debug
 
     cmdEngine.io.rxd << spiSlave.io.rxd
     cmdEngine.io.txd >> spiSlave.io.txd
-
-    scanout.io.dma.setup.setupReady    := False
-    scanout.io.dma.setup.teardownReady := False
-    scanout.io.dma.wdata.ready         := False
-    scanout.io.dma.rdata.valid         := False
-    scanout.io.dma.rdata.payload.assignDontCare
 }
 
 object Generate extends App {

@@ -116,7 +116,7 @@ esp_err_t sapphire_write_mem(uint64_t addr, void const* wdata_, size_t len) {
 
     ESP_ERROR_CHECK_RETURN(sapphire_cmd_irq_enable(SAPPHIRE_IRQ_DMA_ERROR | SAPPHIRE_IRQ_DMA_READY));
     while (len) {
-        size_t max = len < SAPPHIRE_MAX_TRANSFER_SIZE ? len : SAPPHIRE_MAX_TRANSFER_SIZE;
+        size_t max = len < SAPPHIRE_MAX_TRANSFER_SIZE - 1 ? len : SAPPHIRE_MAX_TRANSFER_SIZE - 1;
         ESP_ERROR_CHECK_RETURN(sapphire_cmd_write_dma(addr));
         int64_t lim = esp_timer_get_time() + 10000;
         while (gpio_get_level(39)) {
@@ -456,8 +456,26 @@ esp_err_t sapphire_driver_test(pax_buf_t* gfx) {
     pax_join();
 
     // RAMWR
-    uint8_t const* fb = pax_buf_get_pixels(gfx);
-    ESP_ERROR_CHECK_RETURN(disp_command(0x2c, fb, width * height * 2));
+    // uint8_t const* fb = pax_buf_get_pixels(gfx);
+    // ESP_ERROR_CHECK_RETURN(disp_command(0x2c, fb, width * height * 2));
+
+    // Now have the FPGA do an entire display update on its own.
+    ESP_ERROR_CHECK_RETURN(sapphire_write_mem(0xcafe, pax_buf_get_pixels(gfx), pax_buf_get_size(gfx)));
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_FB_ADDR_LO, 0xcafe));
+
+    // Update window.
+    ESP_ERROR_CHECK_RETURN(
+        sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_HTIMING + SAPPHIRE_CRT_TIMING_REG_FRONT, 0));
+    ESP_ERROR_CHECK_RETURN(
+        sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_HTIMING + SAPPHIRE_CRT_TIMING_REG_RESOLUTION, width));
+    ESP_ERROR_CHECK_RETURN(
+        sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_VTIMING + SAPPHIRE_CRT_TIMING_REG_FRONT, 0));
+    ESP_ERROR_CHECK_RETURN(
+        sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_VTIMING + SAPPHIRE_CRT_TIMING_REG_RESOLUTION, height));
+
+    // Trigger update.
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_CONTROL,
+                                                SAPPHIRE_SCANOUT_CONTROL_ENABLED | SAPPHIRE_SCANOUT_CONTROL_TRIGGER));
 
     return ESP_OK;
 }
