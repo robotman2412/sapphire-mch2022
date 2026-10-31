@@ -39,9 +39,9 @@ ICE40 ice40 = {
     .pin_reset = -1,
 
     // Configuration
-    .spi_speed_full_duplex = 500000,
-    .spi_speed_half_duplex = 500000,
-    .spi_speed_turbo       = 500000,
+    .spi_speed_full_duplex = 5000000,
+    .spi_speed_half_duplex = 5000000,
+    .spi_speed_turbo       = 5000000,
     .spi_input_delay_ns    = 0,
     .spi_max_transfer_size = SAPPHIRE_MAX_TRANSFER_SIZE,
 
@@ -68,10 +68,8 @@ esp_err_t sapphire_do_cmd(uint8_t cmd, void const* param, size_t param_len, void
     xfer_buf[0] = cmd;
     memcpy(xfer_buf + 1, param, param_len);
     ESP_ERROR_CHECK_RETURN(ice40_send(&ice40, xfer_buf, param_len + 1));
-    esp_rom_delay_us(100);
     if (resp_len) {
         esp_err_t res = ice40_receive(&ice40, resp, resp_len);
-        esp_rom_delay_us(100);
         return res;
     } else {
         return ESP_OK;

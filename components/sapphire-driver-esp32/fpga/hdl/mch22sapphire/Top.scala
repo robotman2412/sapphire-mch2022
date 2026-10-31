@@ -49,6 +49,9 @@ case class Top() extends Component {
         /** Active-high display reset. */
         val dispReset = out port Bool()
 
+        /** Active-high display chip select. */
+        val dispChipSelect = out port Bool()
+
         /** Display write strobe. */
         val dispStrobe = out port Bool()
 
@@ -161,12 +164,13 @@ case class Top() extends Component {
 
     /** ILI9341 scanout engine. */
     val scanout = Ili9341Scanout(cfg)
-    val direct  = Ili9341Scanout.DirectSink()
-    direct.io.in << scanout.io.dispStream
-    io.dispStrobe := direct.io.strobe
-    io.dispRegSel := direct.io.regSel
-    io.dispData   := direct.io.data
-    io.dispReset  := scanout.io.resetOut
+    val sink    = Ili9341Scanout.SlowSink()
+    sink.io.in << scanout.io.dispStream
+    io.dispStrobe     := sink.io.strobe
+    io.dispRegSel     := sink.io.regSel
+    io.dispData       := sink.io.data
+    io.dispReset      := scanout.io.resetOut
+    io.dispChipSelect := scanout.io.chipSelect
 
     // APB bus connections.
     val apbDecd   =

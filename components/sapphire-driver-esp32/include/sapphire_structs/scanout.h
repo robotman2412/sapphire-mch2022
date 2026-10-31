@@ -19,15 +19,17 @@
 #define SAPPHIRE_SCANOUT_CAP_RESET       (UINT32_C(1) << 4)
 
 // Scanout control: enabled (read-write; serial type does not automatically send video if enabled).
-#define SAPPHIRE_SCANOUT_CONTROL_ENABLED  (UINT32_C(1) << 0)
+#define SAPPHIRE_SCANOUT_CONTROL_ENABLED   (UINT32_C(1) << 0)
 // Scanout control: display attached (read-only).
-#define SAPPHIRE_SCANOUT_CONTROL_ATTACHED (UINT32_C(1) << 1)
+#define SAPPHIRE_SCANOUT_CONTROL_ATTACHED  (UINT32_C(1) << 1)
 // Scanout control: trigger one frame (trigger; only with SAPPHIRE_SCANOUT_CAP_IS_SERIAL).
-#define SAPPHIRE_SCANOUT_CONTROL_TRIGGER  (UINT32_C(1) << 2)
+#define SAPPHIRE_SCANOUT_CONTROL_TRIGGER   (UINT32_C(1) << 2)
 // Scanout control: register select; 0: Command, 1: Data (read-write; only with SAPPHIRE_SCANOUT_CAP_IS_SERIAL).
-#define SAPPHIRE_SCANOUT_CONTROL_REGSEL   (UINT32_C(1) << 3)
+#define SAPPHIRE_SCANOUT_CONTROL_REGSEL    (UINT32_C(1) << 3)
 // Scanout control: display reset (read-write; active-high).
-#define SAPPHIRE_SCANOUT_CONTROL_RESET    (UINT32_C(1) << 4)
+#define SAPPHIRE_SCANOUT_CONTROL_RESET     (UINT32_C(1) << 4)
+// Scanout control: force chip enable.
+#define SAPPHIRE_SCANOUT_CONTROL_FORCE_SEL (UINT32_C(1) << 5)
 
 // Register layout for horizontal or vertical timings for `sapphire_scanout_regs_t`.
 // All pixel counts minus one (i.e. resolution=399 -> 400 pixels)
@@ -71,12 +73,12 @@ typedef struct {
 #define SAPPHIRE_CRT_TIMING_REG_SYNC       0x0c
 
 // Register offsets for `sapphire_scanout_regs_t`.
-#define SAPPHIRE_SCANOUT_REG_CAPS          0x00
-#define SAPPHIRE_SCANOUT_REG_CONTROL       0x04
-#define SAPPHIRE_SCANOUT_REG_MMU_CTX       0x08
-#define SAPPHIRE_SCANOUT_REG_FB_ADDR_LO    0x0c
-#define SAPPHIRE_SCANOUT_REG_FB_ADDR_HI    0x10
-#define SAPPHIRE_SCANOUT_REG_PIXFMT        0x14
-#define SAPPHIRE_SCANOUT_REG_HTIMING       0x1c
-#define SAPPHIRE_SCANOUT_REG_VTIMING       0x2c
-#define SAPPHIRE_SCANOUT_REG_SERIAL_DATA   0x3c
+#define SAPPHIRE_SCANOUT_REG_CAPS        0x00
+#define SAPPHIRE_SCANOUT_REG_CONTROL     0x04
+#define SAPPHIRE_SCANOUT_REG_MMU_CTX     0x08
+#define SAPPHIRE_SCANOUT_REG_FB_ADDR_LO  0x0c
+#define SAPPHIRE_SCANOUT_REG_FB_ADDR_HI  0x10
+#define SAPPHIRE_SCANOUT_REG_PIXFMT      0x14
+#define SAPPHIRE_SCANOUT_REG_HTIMING     0x1c
+#define SAPPHIRE_SCANOUT_REG_VTIMING     0x2c
+#define SAPPHIRE_SCANOUT_REG_SERIAL_DATA 0x3c

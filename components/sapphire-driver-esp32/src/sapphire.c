@@ -5,7 +5,9 @@
 #include "sapphire.h"
 #include <assert.h>
 #include <esp_log.h>
+#include <stdint.h>
 #include "bsp/display.h"
+#include "bsp/input.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #include "esp_timer.h"
@@ -270,13 +272,18 @@ static const lcd_init_cmd_t init_cmds[] = {
 };
 
 static esp_err_t disp_command_fpga(uint8_t cmd, uint8_t const* data, size_t data_len) {
-    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL, 0));
-    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_SERIAL_DATA, cmd));
     ESP_ERROR_CHECK_RETURN(
-        sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL, SAPPHIRE_SCANOUT_CONTROL_REGSEL));
+        sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL, SAPPHIRE_SCANOUT_CONTROL_FORCE_SEL));
+
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_SERIAL_DATA, cmd));
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL,
+                                                SAPPHIRE_SCANOUT_CONTROL_REGSEL | SAPPHIRE_SCANOUT_CONTROL_FORCE_SEL));
+
     for (size_t i = 0; i < data_len; i++) {
         ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_SERIAL_DATA, data[i]));
     }
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL, 0));
+
     return ESP_OK;
 }
 
@@ -387,39 +394,60 @@ esp_err_t sapphire_driver_test(pax_buf_t* gfx) {
     uint16_t width  = 320;
     uint16_t height = 240;
 
-    // Reset display into FPGA mode.
-    gpio_set_level(BSP_LCD_MODE_PIN, 1);
-    gpio_set_level(BSP_LCD_RESET_PIN, 0);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    gpio_set_level(BSP_LCD_RESET_PIN, 1);
+    esp_err_t (*disp_command)(uint8_t cmd, uint8_t const* data, size_t data_len);
+
+    bool state = false;
+    bsp_input_read_navigation_key(BSP_INPUT_NAVIGATION_KEY_GAMEPAD_B, &state);
+    if (!state) {
+        // Reset display into FPGA mode.
+        sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL, SAPPHIRE_SCANOUT_CONTROL_RESET);
+
+        gpio_set_level(BSP_LCD_MODE_PIN, 1);
+        gpio_set_direction(BSP_LCD_DC_PIN, GPIO_MODE_INPUT);
+        gpio_set_direction(BSP_LCD_CS_PIN, GPIO_MODE_INPUT);
+        gpio_set_direction(BSP_LCD_RESET_PIN, GPIO_MODE_INPUT);
+
+        vTaskDelay(pdMS_TO_TICKS(10));
+        sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL, 0);
+        vTaskDelay(pdMS_TO_TICKS(150));
+
+        disp_command = disp_command_fpga;
+    } else {
+        gpio_set_level(BSP_LCD_RESET_PIN, 0);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        gpio_set_level(BSP_LCD_RESET_PIN, 1);
+        vTaskDelay(pdMS_TO_TICKS(150));
+
+        disp_command = disp_command_normal;
+    }
 
     // LCD should now be in a reset state but owned by the FPGA.
 
     // Init command seq.
     size_t const init_cmds_len = sizeof(init_cmds) / sizeof(lcd_init_cmd_t);
     for (size_t i = 0; i < init_cmds_len; i++) {
-        ESP_ERROR_CHECK_RETURN(disp_command_fpga(init_cmds[i].cmd, init_cmds[i].data, init_cmds[i].data_len));
+        ESP_ERROR_CHECK_RETURN(disp_command(init_cmds[i].cmd, init_cmds[i].data, init_cmds[i].data_len));
     }
 
     // Swap X and Y by setting MV; set BGR bit since the MCH2022 panel is BGR-wired.
     // MADCTL
-    ESP_ERROR_CHECK_RETURN(disp_command_fpga(0x36, (uint8_t[]){0x20 | 0x08}, 1));
+    ESP_ERROR_CHECK_RETURN(disp_command(0x36, (uint8_t[]){0x20 | 0x08}, 1));
 
     // Sleep out — required before the panel will display anything.
-    ESP_ERROR_CHECK_RETURN(disp_command_fpga(0x11, NULL, 0));
+    ESP_ERROR_CHECK_RETURN(disp_command(0x11, NULL, 0));
     vTaskDelay(pdMS_TO_TICKS(120));
 
     // Pixel format: 16 bits/pixel (RGB565) to match the 2-bytes-per-pixel framebuffer.
-    ESP_ERROR_CHECK_RETURN(disp_command_fpga(0x3A, (uint8_t[]){0x55}, 1));
+    ESP_ERROR_CHECK_RETURN(disp_command(0x3A, (uint8_t[]){0x55}, 1));
 
     // DISPON
-    ESP_ERROR_CHECK_RETURN(disp_command_fpga(0x29, NULL, 0));
+    ESP_ERROR_CHECK_RETURN(disp_command(0x29, NULL, 0));
 
     // CASET — ILI9341 takes start/end as big-endian 16-bit values (high byte first), end inclusive.
-    ESP_ERROR_CHECK_RETURN(disp_command_fpga(0x2a, (uint8_t[]){0, 0, (width - 1) >> 8, (width - 1) & 0xFF}, 4));
+    ESP_ERROR_CHECK_RETURN(disp_command(0x2a, (uint8_t[]){0, 0, (width - 1) >> 8, (width - 1) & 0xFF}, 4));
 
     // RASET
-    ESP_ERROR_CHECK_RETURN(disp_command_fpga(0x2b, (uint8_t[]){0, 0, (height - 1) >> 8, (height - 1) & 0xFF}, 4));
+    ESP_ERROR_CHECK_RETURN(disp_command(0x2b, (uint8_t[]){0, 0, (height - 1) >> 8, (height - 1) & 0xFF}, 4));
 
     // Make some image data.
     pax_background(gfx, 0);
@@ -429,7 +457,7 @@ esp_err_t sapphire_driver_test(pax_buf_t* gfx) {
 
     // RAMWR
     uint8_t const* fb = pax_buf_get_pixels(gfx);
-    ESP_ERROR_CHECK_RETURN(disp_command_fpga(0x2c, fb, width * height * 2));
+    ESP_ERROR_CHECK_RETURN(disp_command(0x2c, fb, width * height * 2));
 
     return ESP_OK;
 }

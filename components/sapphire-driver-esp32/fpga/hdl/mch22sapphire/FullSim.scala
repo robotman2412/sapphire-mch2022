@@ -98,7 +98,21 @@ object FullSim extends App {
         spiTrns(Seq(14))
 
         // Test the scanout engine.
-        val caps = ioRead(0x0100 + scanoutRegs.caps)
+        assert(!dut.io.dispChipSelect.toBoolean)
+        var displayWrites = 0
+        fork {
+            var wasStrobe = false
+            while (true) {
+                dut.clockDomain.waitSampling()
+                val strobe = dut.io.dispStrobe.toBoolean
+                if (strobe) {
+                    assert(dut.io.dispChipSelect.toBoolean)
+                    if (!wasStrobe) displayWrites += 1
+                }
+                wasStrobe = strobe
+            }
+        }
+        val caps          = ioRead(0x0100 + scanoutRegs.caps)
         println("Scanout caps: 0x%08x".format(caps))
         assert(
             caps == (scanout.caps.isSerial | scanout.caps.reset | scanout.caps.commands)
@@ -106,11 +120,13 @@ object FullSim extends App {
         ioWrite(0x0100 + scanoutRegs.control, scanout.control.reset)
         ioWrite(0x0100 + scanoutRegs.control, 0)
         ioWrite(0x0100 + scanoutRegs.serialData, 0xcc)
-        ioWrite(0x0100 + scanoutRegs.control, scanout.control.regsel)
+        ioWrite(0x0100 + scanoutRegs.control, scanout.control.regSel)
         ioWrite(0x0100 + scanoutRegs.serialData, 0xca)
         ioWrite(0x0100 + scanoutRegs.serialData, 0xfe)
 
         // Collect some extra samples before the sim ends.
         dut.clockDomain.waitSampling(40)
+        assert(displayWrites == 3)
+        assert(!dut.io.dispChipSelect.toBoolean)
     }
 }
