@@ -51,11 +51,3 @@
 #define SAPPHIRE_PIXFMTA_BLUE(pixfmt)       SAPPHIRE_BITFIELD_READ((pixfmt), 0, 8)
 // Get the alpha channel from pixel format part B.
 #define SAPPHIRE_PIXFMTA_ALPHA(pixfmt)      SAPPHIRE_BITFIELD_READ((pixfmt), 0, 8)
-
-// Register layout for pixel formats in the I/O space.
-typedef struct {
-    // Pixel format part A (color channels).
-    volatile uint32_t pixfmt_a;
-    // Pixel format part B (BPP and type).
-    volatile uint32_t pixfmt_b;
-} sapphire_pixfmt_regs_t;

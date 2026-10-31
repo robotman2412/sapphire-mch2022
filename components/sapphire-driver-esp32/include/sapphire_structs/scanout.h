@@ -5,7 +5,6 @@
 #pragma once
 
 #include <stdint.h>
-#include "sapphire_structs/texture.h"
 
 // Scanout capability: is a CRT controller.
 #define SAPPHIRE_SCANOUT_CAP_IS_CRTC         (UINT32_C(1) << 0)
@@ -37,50 +36,11 @@
 // Scanout control: force chip enable.
 #define SAPPHIRE_SCANOUT_CONTROL_FORCE_SEL (UINT32_C(1) << 5)
 
-// Register layout for horizontal or vertical timings for `sapphire_scanout_regs_t`.
-typedef struct {
-    // Front porch cycles (read-write).
-    // If unimplemented, read-only 0.
-    volatile uint32_t front;
-    // Resolution / video cycles (read-write).
-    volatile uint32_t resolution;
-    // Back porch cycles (read-write).
-    // If unimplemented, read-only 0.
-    volatile uint32_t back;
-    // Sync pulse cycles (read-write).
-    // If unimplemented, read-only 0.
-    volatile uint32_t sync;
-} sapphire_crt_timing_regs_t;
-
-// Register layout for scanout engines in the I/O space.
-typedef struct {
-    // Capabilities (read-only).
-    volatile uint32_t          caps;
-    // Control and status (read-write).
-    volatile uint32_t          control;
-    // GPU MMU context ID (read-write; only with SAPPHIRE_OPTF_HAS_MMU).
-    volatile uint32_t          mmu_ctx;
-    // Source virtual address (read-write).
-    volatile uint32_t          fb_addr_lo;
-    // Source virtual address (read-write; only with SAPPHIRE_REQF_IS_64BIT).
-    volatile uint32_t          fb_addr_hi;
-    // Pixel color format (read-write).
-    sapphire_pixfmt_regs_t     pixfmt;
-    // Horizontal timings (read-write; resolution only for non-CRTC).
-    sapphire_crt_timing_regs_t htiming;
-    // Vertical timings (read-write; resolution only for non-CRTC).
-    sapphire_crt_timing_regs_t vtiming;
-    // Command/data passthough port (read-write; only with SAPPHIRE_SCANOUT_CAP_IS_SERIAL).
-    volatile uint32_t          serial_data;
-} sapphire_scanout_regs_t;
-
-// Register offsets for `sapphire_crt_timing_regs_t`.
 #define SAPPHIRE_CRT_TIMING_REG_FRONT      0x00
 #define SAPPHIRE_CRT_TIMING_REG_RESOLUTION 0x04
 #define SAPPHIRE_CRT_TIMING_REG_BACK       0x08
 #define SAPPHIRE_CRT_TIMING_REG_SYNC       0x0c
 
-// Register offsets for `sapphire_scanout_regs_t`.
 #define SAPPHIRE_SCANOUT_REG_CAPS        0x00
 #define SAPPHIRE_SCANOUT_REG_CONTROL     0x04
 #define SAPPHIRE_SCANOUT_REG_MMU_CTX     0x08
