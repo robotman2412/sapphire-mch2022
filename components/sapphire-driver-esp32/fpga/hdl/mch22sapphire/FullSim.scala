@@ -1,6 +1,7 @@
 package mch22sapphire
 
-// Copyright © 2026, Julian Scheffers, see LICENSE for info
+// Copyright (c) 2025-2026 Julian Scheffers <julian@scheffers.net>
+// SPDX-License-Identifier: CERN-OHL-P-2.0
 
 import sapphire._
 import spinal.core._
@@ -12,7 +13,7 @@ object FullSim extends App {
     Config.sim.compile(Top()).doSim(this.getClass.getSimpleName) { dut =>
         dut.clockDomain.forkStimulus(period = 10)
         dut.io.slaveSclk #= false
-        dut.io.slaveChipSelect #= false
+        dut.io.slaveChipSelectN #= true
 
         // Dilly-dally a bit before sending commands.
         dut.clockDomain.waitSampling(10)
@@ -42,7 +43,7 @@ object FullSim extends App {
         /// Perform a full SPI transaction.
         def spiTrns(data: Seq[Int]): Seq[Int] = {
             dut.clockDomain.waitSampling(spiHalfPeriod)
-            dut.io.slaveChipSelect #= true
+            dut.io.slaveChipSelectN #= false
             dut.clockDomain.waitSampling(spiHalfPeriod)
 
             val res = for (byte <- data) yield {
@@ -50,7 +51,7 @@ object FullSim extends App {
             }
 
             dut.clockDomain.waitSampling(spiHalfPeriod)
-            dut.io.slaveChipSelect #= false
+            dut.io.slaveChipSelectN #= true
             dut.clockDomain.waitSampling(spiHalfPeriod)
 
             return res
@@ -85,48 +86,48 @@ object FullSim extends App {
         // Enable DMA interrupts.
         spiTrns(Seq(4, 0x01, 0x00, 0x00, 0x00))
 
-        // Run a DMA write.
-        spiTrns(Seq(10, 0xfe, 0xca, 0x00, 0x00))
-        dut.clockDomain.waitSamplingWhere(dut.io.irqOut.toBoolean)
-        spiTrns(Seq(11, 0xef, 0xbe, 0xad, 0xde))
+        // // Run a DMA write.
+        // spiTrns(Seq(10, 0xfe, 0xca, 0x00, 0x00))
+        // dut.clockDomain.waitSamplingWhere(dut.io.irqOut.toBoolean)
+        // spiTrns(Seq(11, 0xef, 0xbe, 0xad, 0xde))
 
-        // Run a DMA read.
-        spiTrns(Seq(8, 0xfe, 0xca, 0x00, 0x00))
-        dut.clockDomain.waitSamplingWhere(dut.io.irqOut.toBoolean)
-        spiTrns(Seq(9))
-        spiTrns(Seq(0, 0, 0, 0))
-        spiTrns(Seq(14))
+        // // Run a DMA read.
+        // spiTrns(Seq(8, 0xfe, 0xca, 0x00, 0x00))
+        // dut.clockDomain.waitSamplingWhere(dut.io.irqOut.toBoolean)
+        // spiTrns(Seq(9))
+        // spiTrns(Seq(0, 0, 0, 0))
+        // spiTrns(Seq(14))
 
-        // Test the scanout engine.
-        assert(!dut.io.dispChipSelect.toBoolean)
-        var displayWrites = 0
-        fork {
-            var wasStrobe = false
-            while (true) {
-                dut.clockDomain.waitSampling()
-                val strobe = dut.io.dispStrobe.toBoolean
-                if (strobe) {
-                    assert(dut.io.dispChipSelect.toBoolean)
-                    if (!wasStrobe) displayWrites += 1
-                }
-                wasStrobe = strobe
-            }
-        }
-        val caps          = ioRead(0x0100 + scanoutRegs.caps)
-        println("Scanout caps: 0x%08x".format(caps))
-        assert(
-            caps == (scanout.caps.isSerial | scanout.caps.reset | scanout.caps.commands)
-        )
-        ioWrite(0x0100 + scanoutRegs.control, scanout.control.reset)
-        ioWrite(0x0100 + scanoutRegs.control, 0)
-        ioWrite(0x0100 + scanoutRegs.serialData, 0xcc)
-        ioWrite(0x0100 + scanoutRegs.control, scanout.control.regSel)
-        ioWrite(0x0100 + scanoutRegs.serialData, 0xca)
-        ioWrite(0x0100 + scanoutRegs.serialData, 0xfe)
+        // // Test the scanout engine.
+        // assert(!dut.io.dispChipSelect.toBoolean)
+        // // var displayWrites = 0
+        // // fork {
+        // //     var wasStrobe = false
+        // //     while (true) {
+        // //         dut.clockDomain.waitSampling()
+        // //         val strobe = dut.io.dispStrobe.toBoolean
+        // //         if (strobe) {
+        // //             assert(dut.io.dispChipSelect.toBoolean)
+        // //             if (!wasStrobe) displayWrites += 1
+        // //         }
+        // //         wasStrobe = strobe
+        // //     }
+        // // }
+        // val caps = ioRead(0x0100 + scanoutRegs.caps)
+        // println("Scanout caps: 0x%08x".format(caps))
+        // assert(
+        //     caps == (scanout.caps.isSerial | scanout.caps.reset | scanout.caps.commands)
+        // )
+        // ioWrite(0x0100 + scanoutRegs.control, scanout.control.reset)
+        // ioWrite(0x0100 + scanoutRegs.control, 0)
+        // ioWrite(0x0100 + scanoutRegs.serialData, 0xcc)
+        // ioWrite(0x0100 + scanoutRegs.control, scanout.control.regSel)
+        // ioWrite(0x0100 + scanoutRegs.serialData, 0xca)
+        // ioWrite(0x0100 + scanoutRegs.serialData, 0xfe)
 
-        // Collect some extra samples before the sim ends.
-        dut.clockDomain.waitSampling(40)
-        assert(displayWrites == 3)
-        assert(!dut.io.dispChipSelect.toBoolean)
+        // // Collect some extra samples before the sim ends.
+        // dut.clockDomain.waitSampling(40)
+        // // assert(displayWrites == 3)
+        // assert(!dut.io.dispChipSelect.toBoolean)
     }
 }

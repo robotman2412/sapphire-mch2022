@@ -5,6 +5,8 @@
 #include "sapphire_transport.h"
 #include <driver/spi_master.h>
 #include "bsp/mch2022.h"
+#include "freertos/idf_additions.h"
+#include "freertos/projdefs.h"
 #include "ice40.h"
 #include "rp2040.h"
 #include "sapphire.h"
@@ -39,9 +41,9 @@ ICE40 ice40 = {
     .pin_reset = -1,
 
     // Configuration
-    .spi_speed_full_duplex = 1000000,
-    .spi_speed_half_duplex = 1000000,
-    .spi_speed_turbo       = 1000000,
+    .spi_speed_full_duplex = 5000000,
+    .spi_speed_half_duplex = 5000000,
+    .spi_speed_turbo       = 5000000,
     .spi_input_delay_ns    = 0,
     .spi_max_transfer_size = SAPPHIRE_MAX_TRANSFER_SIZE,
 
@@ -54,7 +56,7 @@ ICE40 ice40 = {
 esp_err_t sapphire_load_bitstream() {
     ESP_ERROR_CHECK_RETURN(ice40_init(&ice40));
     esp_err_t res = ice40_load_bitstream(&ice40, bitstream_start, bitstream_end - bitstream_start);
-    esp_rom_delay_us(100);
+    vTaskDelay(pdMS_TO_TICKS(100));
     return res;
 }
 

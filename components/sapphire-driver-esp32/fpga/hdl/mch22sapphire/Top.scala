@@ -1,7 +1,7 @@
 package mch22sapphire
 
-// SPDX-License-Identifier: MIT
-// SPDX-CopyRightText: 2025 Julian Scheffers <julian@scheffers.net>
+// Copyright (c) 2025-2026 Julian Scheffers <julian@scheffers.net>
+// SPDX-License-Identifier: CERN-OHL-P-2.0
 
 import sapphire._
 import sapphire.phy.spi._
@@ -36,7 +36,7 @@ case class Top() extends Component {
         val irqOut = out port Bool()
 
         /** Active-high chip select input. */
-        val slaveChipSelect = in port Bool()
+        val slaveChipSelectN = in port Bool()
 
         /** Serial clock input. */
         val slaveSclk = in port Bool()
@@ -63,12 +63,7 @@ case class Top() extends Component {
         val dispData = out port Bits(8 bits)
     }
 
-    val enableDebug = true
-
-    // Buffer the asynchronous input signals.
-    val slaveChipSelect = RegNext(io.slaveChipSelect, False)
-    val slaveSclk       = RegNext(io.slaveSclk, False)
-    val slaveMosi       = RegNext(io.slaveMosi, False)
+    val enableDebug = false
 
     /** Global sapphire configuration. */
     val cfg = SapphireCfg(ramSize = 0x800000)
@@ -149,6 +144,8 @@ case class Top() extends Component {
             spiMemCtrl.io.dma.rdata.valid
     }
 
+    val slaveChipSelect = Bool()
+
     /** Command engine. */
     val cmdEngine = CmdEngine(cfg, enableDebug)
     cmdEngine.io.chipSelect := slaveChipSelect
@@ -157,11 +154,12 @@ case class Top() extends Component {
     cmdEngine.io.apb >> apb
 
     /** SPI slave PHY. */
-    val spiSlave = SimpleSpiSlave()
-    spiSlave.io.chipSelect := slaveChipSelect
-    spiSlave.io.sclk       := slaveSclk
-    spiSlave.io.mosi       := slaveMosi
-    io.slaveMiso           := spiSlave.io.miso
+    val spiSlave = Ice40FastSpi()
+    slaveChipSelect         := spiSlave.io.chipSelectSync
+    spiSlave.io.chipSelectN := io.slaveChipSelectN
+    spiSlave.io.sclk        := io.slaveSclk
+    spiSlave.io.mosi        := io.slaveMosi
+    io.slaveMiso            := spiSlave.io.miso
 
     /** ILI9341 scanout engine. */
     val scanout = Ili9341Scanout(cfg)
