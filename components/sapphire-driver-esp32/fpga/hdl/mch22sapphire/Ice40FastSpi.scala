@@ -68,8 +68,8 @@ case class Ice40FastSpi() extends Component {
     io.txd.ready      := ext.usr_miso_ack
     ext.usr_miso_data := io.txd.payload
 
-    io.rxd.valid   := ext.usr_mosi_stb
-    io.rxd.payload := ext.usr_mosi_data
+    io.rxd.valid   := RegNext(ext.usr_mosi_stb).init(False)
+    io.rxd.payload := RegNext(ext.usr_mosi_data)
 
     io.chipSelectSync := !ext.csn_state
 
