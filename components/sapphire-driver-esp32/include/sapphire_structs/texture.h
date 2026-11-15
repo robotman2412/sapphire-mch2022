@@ -51,3 +51,41 @@
 #define SAPPHIRE_PIXFMTA_BLUE(pixfmt)       SAPPHIRE_BITFIELD_READ((pixfmt), 0, 8)
 // Get the alpha channel from pixel format part B.
 #define SAPPHIRE_PIXFMTA_ALPHA(pixfmt)      SAPPHIRE_BITFIELD_READ((pixfmt), 0, 8)
+
+// Texture slot: stored in big-endian.
+#define SAPPHIRE_TEXTURE_FLAGS_BIG_ENDIAN (UINT32_C(1) << 0)
+
+// Texture width in pixels.
+#define SAPPHIRE_TEXTURE_REG_WIDTH   0x00
+// Texture height in pixels.
+#define SAPPHIRE_TEXTURE_REG_HEIGHT  0x04
+// Texture storage flags.
+#define SAPPHIRE_TEXTURE_REG_FLAGS   0x0c
+// Texture pixel format (bits per pixel and type).
+#define SAPPHIRE_TEXTURE_REG_PIXFMTA 0x10
+// Texture pixel format (channel layotu).
+#define SAPPHIRE_TEXTURE_REG_PIXFMTB 0x14
+// Address stride between each texture slot.
+#define SAPPHIRE_TEXTURE_SLOT_STRIDE 0x20
+
+// Sapphire GPU pixel format.
+typedef struct {
+    // Bits per pixel and type.
+    uint32_t a;
+    // Channel layout.
+    uint32_t b;
+} sapphire_pixfmt_t;
+
+// Sapphire GPU texture slot layout.
+typedef struct {
+    // Texture width in pixels.
+    uint32_t          width;
+    // Texture height in pixels.
+    uint32_t          height;
+    // Reserved.
+    uint32_t          _resvd0;
+    // Texture storage flags.
+    uint32_t          flags;
+    // Texture pixel format.
+    sapphire_pixfmt_t pixfmt;
+} sapphire_texture_t;

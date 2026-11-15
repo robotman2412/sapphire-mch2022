@@ -30,6 +30,6 @@ esp_err_t sapphire_cmd_debug_triggers(uint8_t p_triggers);
 // Tear down the current DMA transfer.
 esp_err_t sapphire_cmd_dma_teardown(void);
 // Read an I/O register.
-esp_err_t sapphire_cmd_ioread(uint16_t p_addr, uint32_t* r_data);
+esp_err_t sapphire_cmd_ioread(uint32_t p_addr, uint32_t* r_data);
 // Write an I/O register.
-esp_err_t sapphire_cmd_iowrite(uint16_t p_addr, uint32_t p_data);
+esp_err_t sapphire_cmd_iowrite(uint32_t p_addr, uint32_t p_data);

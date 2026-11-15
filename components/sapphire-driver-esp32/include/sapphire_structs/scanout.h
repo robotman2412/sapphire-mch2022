@@ -36,17 +36,35 @@
 // Scanout control: force chip enable.
 #define SAPPHIRE_SCANOUT_CONTROL_FORCE_SEL (UINT32_C(1) << 5)
 
+// Front porch cycles (read-write).
+// If unimplemented, read-only 0.
 #define SAPPHIRE_CRT_TIMING_REG_FRONT      0x00
+// Resolution / video cycles (read-write).
 #define SAPPHIRE_CRT_TIMING_REG_RESOLUTION 0x04
+// Back porch cycles (read-write).
+// If unimplemented, read-only 0.
 #define SAPPHIRE_CRT_TIMING_REG_BACK       0x08
+// Sync pulse cycles (read-write).
+// If unimplemented, read-only 0.
 #define SAPPHIRE_CRT_TIMING_REG_SYNC       0x0c
 
+// Capabilities (read-only).
 #define SAPPHIRE_SCANOUT_REG_CAPS        0x00
+// Control and status (read-write).
 #define SAPPHIRE_SCANOUT_REG_CONTROL     0x04
+// GPU MMU context ID (read-write; only with SAPPHIRE_OPTF_HAS_MMU).
 #define SAPPHIRE_SCANOUT_REG_MMU_CTX     0x08
+// Source virtual address (read-write).
 #define SAPPHIRE_SCANOUT_REG_FB_ADDR_LO  0x0c
+// Source virtual address (read-write).
 #define SAPPHIRE_SCANOUT_REG_FB_ADDR_HI  0x10
+// Pixel color format (read-write).
 #define SAPPHIRE_SCANOUT_REG_PIXFMT      0x14
+// Horizontal timings (read-write; resolution only for non-CRTC).
 #define SAPPHIRE_SCANOUT_REG_HTIMING     0x1c
+// Vertical timings (read-write; resolution only for non-CRTC).
 #define SAPPHIRE_SCANOUT_REG_VTIMING     0x2c
+// Command/data passthough port (read-write; only with SAPPHIRE_REQF_IS_64BIT).
 #define SAPPHIRE_SCANOUT_REG_SERIAL_DATA 0x3c
+// Address stride between each scanout engine.
+#define SAPPHIRE_SCANOUT_ENGINE_STRIGE   0x80

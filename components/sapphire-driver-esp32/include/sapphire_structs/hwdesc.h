@@ -34,4 +34,6 @@ typedef struct {
     uint32_t optional_features;
     // Number of bits used for pixel coordinates.
     uint8_t  coord_bits;
+    // Number of texture slots.
+    uint8_t  texture_slots;
 } sapphire_hwdesc_t;

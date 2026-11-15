@@ -10,7 +10,7 @@ import spinal.lib._
 import sapphire.scanout.scanoutRegs
 
 object FullSim extends App {
-    Config.sim.compile(Top()).doSim(this.getClass.getSimpleName) { dut =>
+    Config.sim.compile(Top(false)).doSim(this.getClass.getSimpleName) { dut =>
         dut.clockDomain.forkStimulus(period = 10)
         dut.io.slaveSclk #= false
         dut.io.slaveChipSelectN #= true

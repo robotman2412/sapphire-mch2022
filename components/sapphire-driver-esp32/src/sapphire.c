@@ -40,6 +40,7 @@ esp_err_t sapphire_init() {
     ESP_LOGI(TAG, "Required features: 0x%08x", sapphire_hwdesc.required_features);
     ESP_LOGI(TAG, "Optional features: 0x%08x", sapphire_hwdesc.optional_features);
     ESP_LOGI(TAG, "Coordinate bits:   %d", sapphire_hwdesc.coord_bits);
+    ESP_LOGI(TAG, "Texture slots:     %d", sapphire_hwdesc.texture_slots);
 
     if (sapphire_hwdesc.required_features & ~SAPPHIRE_REQF_ALL) {
         ESP_LOGE(TAG,
@@ -76,6 +77,7 @@ esp_err_t sapphire_read_mem(uint64_t addr, void* rdata_, size_t len) {
         while (gpio_get_level(39)) {
             if (esp_timer_get_time() > lim) {
                 ESP_LOGE(TAG, "GPU DMA setup timed out");
+                sapphire_cmd_dma_teardown();
                 return ESP_ERR_TIMEOUT;
             }
         }
@@ -83,6 +85,7 @@ esp_err_t sapphire_read_mem(uint64_t addr, void* rdata_, size_t len) {
         ESP_ERROR_CHECK_RETURN(sapphire_cmd_irq_clear(SAPPHIRE_IRQ_DMA_ERROR | SAPPHIRE_IRQ_DMA_READY, &irq_status));
         if (irq_status & SAPPHIRE_IRQ_DMA_ERROR) {
             ESP_LOGE(TAG, "GPU reports DMA setup failure");
+            sapphire_cmd_dma_teardown();
             return ESP_FAIL;
         }
         ESP_ERROR_CHECK_RETURN(sapphire_cmd_read_payload(rdata, max));
@@ -273,16 +276,16 @@ static const lcd_init_cmd_t init_cmds[] = {
 
 static esp_err_t disp_command_fpga(uint8_t cmd, uint8_t const* data, size_t data_len) {
     ESP_ERROR_CHECK_RETURN(
-        sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL, SAPPHIRE_SCANOUT_CONTROL_FORCE_SEL));
+        sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_CONTROL, SAPPHIRE_SCANOUT_CONTROL_FORCE_SEL));
 
-    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_SERIAL_DATA, cmd));
-    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL,
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_SERIAL_DATA, cmd));
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_CONTROL,
                                                 SAPPHIRE_SCANOUT_CONTROL_REGSEL | SAPPHIRE_SCANOUT_CONTROL_FORCE_SEL));
 
     for (size_t i = 0; i < data_len; i++) {
-        ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_SERIAL_DATA, data[i]));
+        ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_SERIAL_DATA, data[i]));
     }
-    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL, 0));
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_CONTROL, 0));
 
     return ESP_OK;
 }
@@ -388,7 +391,7 @@ static esp_err_t disp_command_normal(uint8_t cmd, uint8_t const* data, size_t da
 // Do a test thingy.
 esp_err_t sapphire_driver_test(pax_buf_t* gfx) {
     uint32_t caps;
-    ESP_ERROR_CHECK_RETURN(sapphire_cmd_ioread(0x0100 + SAPPHIRE_SCANOUT_REG_CAPS, &caps));
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_ioread(0x010000 + SAPPHIRE_SCANOUT_REG_CAPS, &caps));
     ESP_LOGI(TAG, "Scanout caps: 0x%08x", caps);
 
     uint16_t width  = 320;
@@ -400,7 +403,7 @@ esp_err_t sapphire_driver_test(pax_buf_t* gfx) {
     bsp_input_read_navigation_key(BSP_INPUT_NAVIGATION_KEY_GAMEPAD_B, &state);
     if (!state) {
         // Reset display into FPGA mode.
-        sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL, SAPPHIRE_SCANOUT_CONTROL_RESET);
+        sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_CONTROL, SAPPHIRE_SCANOUT_CONTROL_RESET);
 
         gpio_set_level(BSP_LCD_MODE_PIN, 1);
         gpio_set_direction(BSP_LCD_DC_PIN, GPIO_MODE_INPUT);
@@ -408,7 +411,7 @@ esp_err_t sapphire_driver_test(pax_buf_t* gfx) {
         gpio_set_direction(BSP_LCD_RESET_PIN, GPIO_MODE_INPUT);
 
         vTaskDelay(pdMS_TO_TICKS(10));
-        sapphire_cmd_iowrite(0x0100 + SAPPHIRE_SCANOUT_REG_CONTROL, 0);
+        sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_CONTROL, 0);
         vTaskDelay(pdMS_TO_TICKS(150));
 
         disp_command = disp_command_fpga;
@@ -461,20 +464,20 @@ esp_err_t sapphire_driver_test(pax_buf_t* gfx) {
 
     // Now have the FPGA do an entire display update on its own.
     ESP_ERROR_CHECK_RETURN(sapphire_write_mem(0xcafe, pax_buf_get_pixels(gfx), pax_buf_get_size(gfx)));
-    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_FB_ADDR_LO, 0xcafe));
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_FB_ADDR_LO, 0xcafe));
 
     // Update window.
     ESP_ERROR_CHECK_RETURN(
-        sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_HTIMING + SAPPHIRE_CRT_TIMING_REG_FRONT, 0));
+        sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_HTIMING + SAPPHIRE_CRT_TIMING_REG_FRONT, 0));
     ESP_ERROR_CHECK_RETURN(
-        sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_HTIMING + SAPPHIRE_CRT_TIMING_REG_RESOLUTION, width));
+        sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_HTIMING + SAPPHIRE_CRT_TIMING_REG_RESOLUTION, width));
     ESP_ERROR_CHECK_RETURN(
-        sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_VTIMING + SAPPHIRE_CRT_TIMING_REG_FRONT, 0));
+        sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_VTIMING + SAPPHIRE_CRT_TIMING_REG_FRONT, 0));
     ESP_ERROR_CHECK_RETURN(
-        sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_VTIMING + SAPPHIRE_CRT_TIMING_REG_RESOLUTION, height));
+        sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_VTIMING + SAPPHIRE_CRT_TIMING_REG_RESOLUTION, height));
 
     // Trigger update.
-    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x100 + SAPPHIRE_SCANOUT_REG_CONTROL,
+    ESP_ERROR_CHECK_RETURN(sapphire_cmd_iowrite(0x010000 + SAPPHIRE_SCANOUT_REG_CONTROL,
                                                 SAPPHIRE_SCANOUT_CONTROL_ENABLED | SAPPHIRE_SCANOUT_CONTROL_TRIGGER));
 
     return ESP_OK;
