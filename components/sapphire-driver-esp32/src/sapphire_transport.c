@@ -54,7 +54,6 @@ ICE40 ice40 = {
 
 // Install the Sapphire bitstream onto the FPGA.
 esp_err_t sapphire_load_bitstream() {
-    ESP_ERROR_CHECK_RETURN(ice40_init(&ice40));
     esp_err_t res = ice40_load_bitstream(&ice40, bitstream_start, bitstream_end - bitstream_start);
     vTaskDelay(pdMS_TO_TICKS(100));
     return res;

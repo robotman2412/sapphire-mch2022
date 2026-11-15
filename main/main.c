@@ -8,12 +8,14 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "hal/lcd_types.h"
+#include "ice40.h"
 #include "nvs_flash.h"
 #include "pax_fonts.h"
 #include "pax_gfx.h"
 #include "pax_text.h"
 #include "portmacro.h"
 #include "sapphire.h"
+#include "sapphire_misc.h"
 
 // Constants
 static char const TAG[] = "main";
@@ -25,6 +27,8 @@ static lcd_color_rgb_pixel_format_t display_color_format = LCD_COLOR_PIXEL_FORMA
 static lcd_rgb_data_endian_t        display_data_endian  = LCD_RGB_DATA_ENDIAN_LITTLE;
 static pax_buf_t                    fb                   = {0};
 static QueueHandle_t                input_event_queue    = NULL;
+
+extern ICE40 ice40;
 
 void blit(void) {
     bsp_display_blit(0, 0, display_h_res, display_v_res, pax_buf_get_pixels(&fb));
@@ -96,12 +100,17 @@ void app_main(void) {
     blit();
 
     vTaskDelay(pdMS_TO_TICKS(1000));
+    res = ice40_init(&ice40);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to init iCE40: %s", esp_err_to_name(res));
+        esp_restart();
+    }
+reset:
     res = sapphire_init();
     if (res != ESP_OK) {
         ESP_LOGE(TAG, "Failed to init Sapphire driver: %s", esp_err_to_name(res));
         esp_restart();
     }
-reset:
     res = sapphire_driver_test(&fb);
     if (res != ESP_OK) {
         ESP_LOGE(TAG, "Sapphire driver test failed: %s", esp_err_to_name(res));

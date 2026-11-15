@@ -7,6 +7,7 @@
 #include "esp_err.h"
 #include "sapphire_structs.h"
 
+esp_err_t sapphire_cmd_nop(void);
 // Get status information.
 esp_err_t sapphire_cmd_status(sapphire_statreg_t* r_statreg);
 // Get the GPU hardware description structure.

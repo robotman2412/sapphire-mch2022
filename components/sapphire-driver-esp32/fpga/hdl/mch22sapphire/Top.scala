@@ -88,7 +88,7 @@ case class Top(fastSpi: Boolean, enableDebug: Boolean = false) extends Component
         slaveChipSelect              := RegNext(RegNext(!io.slaveChipSelectN))
         simpleSpiSlave.io.chipSelect := slaveChipSelect
         simpleSpiSlave.io.sclk       := RegNext(RegNext(io.slaveSclk))
-        simpleSpiSlave.io.mosi       := RegNext(io.slaveMosi)
+        simpleSpiSlave.io.mosi       := RegNext(RegNext(io.slaveMosi))
         io.slaveMiso                 := simpleSpiSlave.io.miso
         spiRxd << simpleSpiSlave.io.rxd
         spiTxd >> simpleSpiSlave.io.txd

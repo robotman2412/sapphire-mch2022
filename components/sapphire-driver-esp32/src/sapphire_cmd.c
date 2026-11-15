@@ -3,8 +3,13 @@
 // SPDX-CopyRightText: 2025 Julian Scheffers <julian@scheffers.net>
 
 #include "sapphire_cmd.h"
+#include <stdlib.h>
 #include "sapphire.h"
 #include "sapphire_transport.h"
+
+esp_err_t sapphire_cmd_nop() {
+    return sapphire_do_cmd(SAPPHIRE_CMD_NOP, NULL, 0, NULL, 0);
+}
 
 // Get status information.
 esp_err_t sapphire_cmd_status(sapphire_statreg_t* r_statreg) {
